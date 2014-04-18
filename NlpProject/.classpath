@@ -14,5 +14,7 @@
 	<classpathentry kind="lib" path="Lib/xom-1.2.10-src.jar"/>
 	<classpathentry kind="lib" path="Lib/xom.jar"/>
 	<classpathentry kind="lib" path="edu.mit.jwi_2.3.3_all/edu.mit.jwi_2.3.3_jdk.jar"/>
+	<classpathentry kind="lib" path="Lib/weka-src.jar"/>
+	<classpathentry kind="lib" path="Lib/weka.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
