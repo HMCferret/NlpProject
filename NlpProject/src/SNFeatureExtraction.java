@@ -86,7 +86,7 @@ public class SNFeatureExtraction {
 		MostFqtChar = 0;
 		
 		//1
-		numSpeakingChar = t;
+		numSpeakingChar = mapHelper.size();
 		
 		//2
 		//Sort map to get n most frequent speakers
