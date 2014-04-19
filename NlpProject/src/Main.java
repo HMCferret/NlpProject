@@ -22,7 +22,7 @@ import edu.stanford.nlp.util.CoreMap;
 public class Main {
 	
 	public static void main(String[] args) throws Exception {
-		 PrintWriter out;
+		 /*PrintWriter out;
 		    if (args.length > 1) {
 		      out = new PrintWriter(new PrintStream(args[1]), true);
 		    } else {
@@ -49,7 +49,7 @@ public class Main {
 		    {
 		    	Quote q= it.next();
 		    	System.out.println(++cnt + ":" + "[" + q.speaker.name + "]" + "=>" + q.text);
-		    }
+		    }*/
 		    
 		   Demo();
 	}
@@ -84,9 +84,39 @@ public class Main {
 	    
 	    cq.add(item);
 	    
-	    AttributeJ48 att = new AttributeJ48(cq,200,2);
-	    att.Create();
-	    att.AddData();
+	    item = new CandidateQuote();
+	    item.distance = 6;
+	    item.commaPresence = false;
+	    item.periodPresence = true;
+	    item.punctuationPresence = false;
+	    item.ordinal = 2;
+	    item.proportion = 37.0;
+	    item.numNameCd = 7;
+	    item.numQuoteCd = 18;
+	    item.numWordCd = 24;
+	    item.numNameQt = 24;
+	    item.numQuoteQt = 23;
+	    item.numWordQt = 7;
+	    item.numNameOtr = 9;
+	    item.numQuoteOtr = 8;
+	    item.numWordOtr = 35;
+	    item.numAppearance = 12;
+	    item.expVerbPresence = false;
+	    item.personPresence = true;
+	    item.quoteLength = 37;
+	    item.quotePosition = 22;
+	    item.otherCharPresence = true;
+	    item.candidatePresence = false;
+	    
+	    cq.add(item);
+	    
+	    
+	    AttributeJ48 att = new AttributeJ48(cq,200,5);
+	    List<CandidateQuoteResult> cqr = att.Create();
+	    for(CandidateQuoteResult it:cqr)
+	    {
+	    	System.out.println(it.candidateIsSpeaker);
+	    }
 	    
 	    Instances data = att.ShowData();
 	    System.out.println(data);

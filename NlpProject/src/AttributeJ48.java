@@ -1,9 +1,13 @@
+import java.util.ArrayList;
 import java.util.List;
 
+import weka.classifiers.meta.FilteredClassifier;
+import weka.classifiers.trees.J48;
 import weka.core.Attribute;
 import weka.core.FastVector;
 import weka.core.Instance;
 import weka.core.Instances;
+import weka.filters.unsupervised.attribute.Remove;
 
 public class AttributeJ48 {
 	private FastVector atts;
@@ -11,8 +15,8 @@ public class AttributeJ48 {
 	private FastVector attValsBool;
 	private FastVector attValsPercent;
 	private Instances data;
-	//private Integer num;
 	private List<CandidateQuote> cq;
+	private List<CandidateQuoteResult> cqr;
 	private int range;
 	private int rangeLength;
 	private double[] vals;
@@ -25,7 +29,7 @@ public class AttributeJ48 {
 		this.rangeLength=rangeLength;
 	}
 	
-	public void Create() throws Exception {
+	public List<CandidateQuoteResult> Create() throws Exception {
 	    atts = new FastVector();
 	    attValsNumeric = new FastVector();
 	    attValsBool = new FastVector();
@@ -79,107 +83,102 @@ public class AttributeJ48 {
 	    
 	    data = new Instances("Attribution Quoted Speech", atts, 0);
 	    
-	    
-		/*
-	    
-	    for(Integer i = 0; i < range; i+=rangeLength)
-	    {
-	    	String val = ((Integer)(2*i)).toString() + "-" + ((Integer)(2*i+2)).toString();
-	    	attVals.addElement(val);
-	    	
-	    	String val2 = i.toString() + "-" + ((Integer)(i+1)).toString();
-	    	attVals2.addElement(val2);
-	    }
-	    
-	    
-	    attVals3.addElement("0.0");
-	    attVals3.addElement("1.0");
-	    
-	    for(int i = 0; i < num; i++){
-	    	switch(i){
-	    	case 4:
-	    		atts.addElement(new Attribute("att" + (i+1),attVals2));
-	    		break;
-	    	case 8:
-	    		atts.addElement(new Attribute("att" + (i+1),attVals3));
-	    		break;
-	    	default:
-	    		atts.addElement(new Attribute("att" + (i+1),attVals));
-	    		break;
-	    	}
-	    }
-	    
-	    	
-	    data = new Instances("Attribution Quoted Speech", atts, 0);*/
+	    return AddData();
 	}
   
-	  public void AddData() throws Exception
+	  private List<CandidateQuoteResult> AddData() throws Exception
 	  {		
 		  for(CandidateQuote item:cq)
 		  {
 			  vals = new double[data.numAttributes()];
 			  
-			  AddNumeric(0, item.distance);
+			  AddValue(0, item.distance);
 			  
-			  AddNumeric(1, item.commaPresence);
-			  AddNumeric(2, item.periodPresence);
-			  AddNumeric(3, item.punctuationPresence);
+			  AddValue(1, item.commaPresence);
+			  AddValue(2, item.periodPresence);
+			  AddValue(3, item.punctuationPresence);
 			  
-			  AddNumeric(4, item.ordinal);
+			  AddValue(4, item.ordinal);
 			  
-			  AddNumeric(5, item.proportion);
+			  AddValue(5, item.proportion);
 			  
-			  AddNumeric(6, item.numNameCd);
-			  AddNumeric(7, item.numQuoteCd);
-			  AddNumeric(8, item.numWordCd);
+			  AddValue(6, item.numNameCd);
+			  AddValue(7, item.numQuoteCd);
+			  AddValue(8, item.numWordCd);
 			  
-			  AddNumeric(9, item.numNameQt);
-			  AddNumeric(10, item.numQuoteQt);
-			  AddNumeric(11, item.numWordCd);
+			  AddValue(9, item.numNameQt);
+			  AddValue(10, item.numQuoteQt);
+			  AddValue(11, item.numWordCd);
 			  
-			  AddNumeric(12, item.numNameOtr);
-			  AddNumeric(13, item.numQuoteOtr);
-			  AddNumeric(14, item.numWordOtr);
+			  AddValue(12, item.numNameOtr);
+			  AddValue(13, item.numQuoteOtr);
+			  AddValue(14, item.numWordOtr);
 			  
-			  AddNumeric(15, item.numAppearance);
+			  AddValue(15, item.numAppearance);
 			  
-			  AddNumeric(16, item.expVerbPresence);
-			  AddNumeric(17, item.personPresence);
+			  AddValue(16, item.expVerbPresence);
+			  AddValue(17, item.personPresence);
 			 
-			  AddNumeric(18, item.quoteLength);
-			  AddNumeric(19, item.quotePosition);
-			  AddNumeric(20, item.otherCharPresence);
-			  AddNumeric(21, item.candidatePresence);
+			  AddValue(18, item.quoteLength);
+			  AddValue(19, item.quotePosition);
+			  AddValue(20, item.otherCharPresence);
+			  AddValue(21, item.candidatePresence);
 			  
 			  data.add(new Instance(1.0,vals));
 		  }
 		  
-		  /*
-		    double[] vals;
-		    int i;
-		    
-		    vals = new double[data.numAttributes()];
-		    // - numeric
-		    for(i = 0;i < data2.length;i++){
-		    	if(i == 4){
-		    		Integer t = 0;
-			    	while(data2[i] >= t)
-			    		t+=1;
-			    	String val = ((Integer)(t-1)).toString() + "-" + t.toString();
-		    		vals[i] = attVals2.indexOf(val);
-
-		    	} else if (i == 8){
-		    		String val = ((Double)data2[i]).toString();
-		    		vals[i] = attVals3.indexOf(val);
-		    	} else{
-		    	Integer t = 0;
-		    	while(data2[i] >= t)
-		    		t+=2;
-		    	String val = ((Integer)(t-2)).toString() + "-" + t.toString();
-		    	vals[i] = attVals.indexOf(val);
-		    }
-		    }
-		    data.add(new Instance(1.0,vals));*/
+		  return Classifier(data,data);
+	  }
+	  
+	  private List<CandidateQuoteResult> Classifier(Instances trainString, Instances testString) throws Exception
+	  {
+		  cqr = new ArrayList<CandidateQuoteResult>();
+		  Instances train = trainString;
+			 int cIdx=train.numAttributes()-1; 
+			 train.setClassIndex(cIdx);
+			 
+			 Instances test = testString;
+			 cIdx=test.numAttributes()-1; 
+			 test.setClassIndex(cIdx);
+			 
+			// filter
+			Remove rm = new Remove();
+			rm.setAttributeIndices("1");  // remove 1st attribute
+			
+			// classifier
+			J48 j48 = new J48();
+			j48.setUnpruned(true);        // using an unpruned J48
+			// meta-classifier
+			FilteredClassifier fc = new FilteredClassifier();
+			fc.setFilter(rm);
+			fc.setClassifier(j48);
+			// train and make predictions
+			fc.buildClassifier(train);
+			int count=0;
+			String actual;
+			String predicted;
+			for (int i = 0; i < test.numInstances(); i++) {
+				double pred = fc.classifyInstance(test.instance(i));
+				actual = test.classAttribute().value((int) test.instance(i).classValue());
+				predicted = test.classAttribute().value((int) pred);
+				System.out.print("ID: " + test.instance(i).value(0));
+				System.out.print(", actual: " + actual);
+				System.out.println(", predicted: " + predicted);
+				CandidateQuote cqResult = cq.get(i);
+				CandidateQuoteResult cqrResult;
+				if(actual.equals(predicted))
+				{	
+					cqrResult = new CandidateQuoteResult(cqResult,true);
+					count++;
+				}
+				else
+				{
+					cqrResult = new CandidateQuoteResult(cqResult,false);
+				}
+				cqr.add(cqrResult);
+			}
+			System.out.println("Accuracy: " + String.format("%.2f",1.0*count/test.numInstances()*100) + "%");
+			return cqr;
 	  }
 	  
 	  public Instances ShowData()
@@ -187,7 +186,7 @@ public class AttributeJ48 {
 		  return data;
 	  }
 	  
-	  private void AddNumeric(Integer i, Object value)
+	  private void AddValue(Integer i, Object value)
 	  {
 		  if(value instanceof Integer){
 			  Integer t = 0;
