@@ -5,9 +5,7 @@ public class ConversationalNetworkFeature {
 	public int numSpeakingChar;
 	
 	//2
-	public double firstMostFqtChar;
-	public double secondMostFqtChar;
-	public double thirdMostFqtChar;
+	public double MostFqtChar;
 	
 	//3
 	public int numQuote;
