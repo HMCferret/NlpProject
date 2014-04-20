@@ -12,8 +12,8 @@ public class ConversationalNetworkFeature {
 	public double quoteProportion;
 	
 	//4
-	public int num3Cliche;
-	public int num4Cliche;
+	public int num3Clique;
+	public int num4Clique;
 	
 	//5
 	public double avgDegree;

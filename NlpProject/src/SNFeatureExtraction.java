@@ -1,7 +1,5 @@
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
@@ -12,28 +10,6 @@ import java.util.TreeMap;
 
 
 public class SNFeatureExtraction {
-	//1
-	private int numChar;
-	private int numSpeakingChar;
-	
-	//2
-	private double MostFqtChar;
-
-	
-	//3
-	private int numQuote;
-	private double quoteProportion;
-	
-	//4
-	private int num3Cliche;
-	public int num4Cliche;
-	
-	//5
-	private double avgDegree;
-	
-	//6
-	private double graphDensity;
-	
 	
 	private List<Quote> lq; // list of quote
 	private String text;// text in data
@@ -47,10 +23,9 @@ public class SNFeatureExtraction {
 		this.text = text;
 	}
 	
-	public void CreateNetwork()
+	public ConversationalNetworkFeature CreateNetwork()
 	{
 		countWordQuote = 0;
-		int countSpeaker = 0;
 		mapHelper = new LinkedHashMap<String, Integer>();
 		mapHelper2 = new TreeMap<Integer, Quote>();
 		
@@ -61,8 +36,7 @@ public class SNFeatureExtraction {
 			Quote q = it.next();
 			if(!mapHelper.containsKey(q.speaker.name))
 			{
-					countSpeaker++;
-					mapHelper.put(q.speaker.name, 1);
+				mapHelper.put(q.speaker.name, 1);
 			}
 			else
 			{
@@ -75,43 +49,47 @@ public class SNFeatureExtraction {
 		
 		Map<String, Integer> result = BuildMap();
 
-		Extract(result);
+		return Extract(result);
 	}
 	
-	public void Extract(Map<String, Integer> network)
+	public ConversationalNetworkFeature Extract(Map<String, Integer> network)
 	{
+		ConversationalNetworkFeature cnf = new ConversationalNetworkFeature();
 		int t = mapHelper.size();
 		int n = (t % 5 == 0)?5:t % 5; //n most frequent speakers
-		MostFqtChar = 0;
+		cnf.MostFqtChar = 0;
 		
 		//1
-		numChar = QuotedSpeechAttribution.names.size();
-		numSpeakingChar = mapHelper.size();
+		cnf.numChar = QuotedSpeechAttribution.names.size();
+		cnf.numSpeakingChar = mapHelper.size();
 		
 		//2
 		//Sort map to get n most frequent speakers
 		mapHelper = sortByValue(mapHelper);
 		int index = 0;
 		for (Map.Entry<String,Integer> entry : mapHelper.entrySet()) {
-			MostFqtChar += entry.getValue();
+			cnf.MostFqtChar += entry.getValue();
 			index++;
 			if(index >= n )
 				break;
 	    	}
-		MostFqtChar /=lq.size();
+		cnf.MostFqtChar /=lq.size();
 		
 		//3
-		numQuote = lq.size();
-		quoteProportion = 100.0*countWordQuote/text.length();
+		cnf.numQuote = lq.size();
+		cnf.quoteProportion = 100.0*countWordQuote/text.length();
 		
 		//4
-		
+		cnf.num3Clique = numClique(3);
+		cnf.num3Clique = numClique(4);
 		
 		//5
-		avgDegree = network.size()*1.0/t;
+		cnf.avgDegree = network.size()*1.0/t;
 		
 		//6
-		graphDensity = network.size()*1.0/(t*(t-1));
+		cnf.graphDensity = network.size()*1.0/(t*(t-1));
+		
+		return cnf;
 		
 	}
 	
@@ -144,7 +122,8 @@ public class SNFeatureExtraction {
 	     int qp = 0;//quotePosition
 	     
 	     while(iterator.hasNext()) {
-	         Map.Entry me = (Map.Entry)iterator.next();
+	         @SuppressWarnings("rawtypes")
+			Map.Entry me = (Map.Entry)iterator.next();
 	         if(name!="" && !name.equals(((Quote)me.getValue()).speaker.name) && Distance(qp, (Integer)me.getKey()) < 300)
 	         {
 	       		 String pair1 = name + " " + ((Quote)me.getValue()).speaker.name;
@@ -167,7 +146,7 @@ public class SNFeatureExtraction {
 	     return result;
 	}
 	
-	//Not done yet
+	@SuppressWarnings("rawtypes")
 	public int numClique(int num)
 	{
 		if(num > mapHelper.size())
