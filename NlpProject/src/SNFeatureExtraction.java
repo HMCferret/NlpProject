@@ -1,3 +1,4 @@
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
@@ -23,7 +24,7 @@ public class SNFeatureExtraction {
 		this.text = text;
 	}
 	
-	public ConversationalNetworkFeature CreateNetwork()
+	public ConversationalNetworkFeature ConstructNetwork()
 	{
 		countWordQuote = 0;
 		mapHelper = new LinkedHashMap<String, Integer>();
@@ -49,10 +50,10 @@ public class SNFeatureExtraction {
 		
 		Map<String, Integer> result = BuildMap();
 
-		return Extract(result);
+		return ExtractFeature(result);
 	}
 	
-	public ConversationalNetworkFeature Extract(Map<String, Integer> network)
+	public ConversationalNetworkFeature ExtractFeature(Map<String, Integer> network)
 	{
 		ConversationalNetworkFeature cnf = new ConversationalNetworkFeature();
 		int t = mapHelper.size();
@@ -81,7 +82,7 @@ public class SNFeatureExtraction {
 		
 		//4
 		cnf.num3Clique = numClique(3);
-		cnf.num3Clique = numClique(4);
+		cnf.num4Clique = numClique(4);
 		
 		//5
 		cnf.avgDegree = network.size()*1.0/t;
@@ -156,32 +157,34 @@ public class SNFeatureExtraction {
 		int index = 0;
 		int count = 0;
 		String name = "";
-	    int[] helper = new int[lq.size()];
+	    List<Integer> helper = new ArrayList<Integer>();
 	    
-	    while(iterator.hasNext()) {
-	         Map.Entry me = (Map.Entry)iterator.next();
-	         if(name!="")
-	         {
-	        	 if(name.equals(((Quote)me.getValue()).speaker.name))
-	        		 mapHelper2.remove(me.getKey());
-	        	 else{
-	        		 helper[index] = (Integer)me.getKey();
-	        	 }
-	         }
-	         name = ((Quote)me.getValue()).speaker.name;
-	         helper[index] = (Integer)me.getKey();
+	    try
+	    {
+		    while(iterator.hasNext()) {
+		         Map.Entry me = (Map.Entry)iterator.next();
+		         if((name!="" && !name.equals(((Quote)me.getValue()).speaker.name)) || name=="")
+		         {
+		        	 name = ((Quote)me.getValue()).speaker.name;
+			         helper.add((Integer)me.getKey());
+			         //index++;
+		         }
+		    }
+	    }
+	    catch(Exception ex)
+	    {
+	    	System.out.println(ex);
 	    }
 	    	
-	    for(int i = 0;i<helper.length - num;i++)
+	    for(int i = 0;i<=helper.size() - num;i++)
 	    {
 	    	int j = i;
-	    	while(j < i + num && Distance(helper[j],helper[j+1]) < 300)
+	    	while(j < i + num - 1 && Distance(helper.get(j),helper.get(j+1)) < 300)
 	    	{
 	    		j++;
 	    	}
-	    	if(j == i+num)
+	    	if(j == i + num - 1)
 	    		count++;
-	    		
 	    }
 	    return count;
 	}

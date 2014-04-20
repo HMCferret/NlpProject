@@ -31,8 +31,8 @@ public class Main {
 		    } else {
 		      out = new PrintWriter(System.out, true);
 		    }
-		    		    
-		    Annotation input = new Annotation("Tu Nguyen said \"an email\" to Stanford University. \"Die hard\" Kosgi said \"Live strong.\" Tu said \"Wow if only this works!\" He loves his father");
+		    String text = "Tu Nguyen said \"an email\" to Stanford University. \"Die hard\" Kosgi said \"Live strong.\" Tu said \"Wow if only this works!\" He loves his father";	    
+		    Annotation input = new Annotation(text);
 		    if (args.length > 0) {
 		    	input = new Annotation(IOUtils.slurpFileNoExceptions(args[0]));
 		    }
@@ -52,11 +52,15 @@ public class Main {
 		    {
 		    	Quote q= it.next();
 		    	System.out.println(++cnt + ":" + "[" + q.speaker.name + "]" + "=>" + q.text);
-		    	System.out.println(q.characterBeginOffset);
-		    	System.out.println(q.characterEndOffset);
 		    }
 			Set<String> setName = StandfordWrapper.getNames(input);
-			System.out.println(setName.size());
+			
+		SNFeatureExtraction snfe = new SNFeatureExtraction(list,text);
+		ConversationalNetworkFeature cnf = snfe.ConstructNetwork();
+		
+		System.out.println(cnf.num3Clique);
+		System.out.println(cnf.num4Clique);
+		//Demo();
 	}
 	public static void Demo() throws Exception
 	{
