@@ -35,6 +35,7 @@ public class QuotedSpeechAttribution {
 	
 	private boolean verbose;
 	private String originalText;
+	public static Set<String> names;
 	
 	private void generateNameMap(Set<String> names)
 	{
@@ -57,7 +58,7 @@ public class QuotedSpeechAttribution {
 	    StandfordWrapper.annotate(annotation, out);
 	    if(verbose) Util.debug("Annotation ends");
 	    
-		Set<String> names = StandfordWrapper.getNames(annotation);
+		names = StandfordWrapper.getNames(annotation);
 	    System.out.println(names);
 	    generateNameMap(names);
 	    if(verbose) Util.debug(nameMap);

@@ -1,3 +1,4 @@
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -74,18 +75,19 @@ public class SNFeatureExtraction {
 			mapHelper2.put(q.characterBeginOffset,sns);
 		}
 		
-		Map<String, Integer> result = BuildMap(1);
+		Map<String, Integer> result = BuildMap();
 
 		Extract(result);
 	}
 	
 	public void Extract(Map<String, Integer> network)
 	{
-		int t = network.size()/2;
+		int t = mapHelper.size();
 		int n = (t % 5 == 0)?5:t % 5; //n most frequent speakers
 		MostFqtChar = 0;
 		
 		//1
+		numChar = QuotedSpeechAttribution.names.size();
 		numSpeakingChar = mapHelper.size();
 		
 		//2
@@ -134,7 +136,7 @@ public class SNFeatureExtraction {
         return result;
     }
 	
-	public Map<String, Integer> BuildMap(int cliqueNumber)
+	public Map<String, Integer> BuildMap()
 	{
 		Map<String, Integer> result = new TreeMap<String,Integer>();
 		Set<?> set = mapHelper2.entrySet();
@@ -168,8 +170,40 @@ public class SNFeatureExtraction {
 	     return result;
 	}
 	
+	//Not done yet
+	public int numClique(int num)
+	{
+		int index = 0;
+		int count = 0;
+		String name = "";
+	    int l = 0;//length
+	    int qp = 0;//quotePosition
+	    
+	    Set<?> set = mapHelper2.entrySet();
+	    Iterator<?> iterator = set.iterator();
+	    List<String> checkName = new ArrayList<String>();
+	    while(iterator.hasNext()) {
+	    	Map.Entry me = (Map.Entry)iterator.next();
+	    	if(name!="" && checkName.contains(((SocialNetworkSpeaker)me.getValue()).name))
+	    	{
+	    		if(index < num)
+	    		{
+	    			
+	    		}
+	    		else
+	    		{
+	    			index = 0;
+	    		}
+	    	}
+	    	name = ((SocialNetworkSpeaker)me.getValue()).name;
+	        l = ((SocialNetworkSpeaker)me.getValue()).quoteLength;
+	        qp = (Integer)me.getKey();
+	    }
+	    return 0;
+	}
+	
 	public int Distance(int begin, int end)
 	{
-		return text.substring(begin, end).length() - text.replaceAll("\\.","").length();
+		return text.substring(begin, end).length() - text.replaceAll(" ","").length();
 	}
 }
