@@ -39,7 +39,7 @@ public class SNFeatureExtraction {
 	private String text;// text in data
 	private int countWordQuote;// count word in quote
 	private Map<String, Integer> mapHelper;//store speakers's frequency
-	private Map<Integer, SocialNetworkSpeaker> mapHelper2;//store speaker's quotePosition
+	private Map<Integer, Quote> mapHelper2;//store speaker's quotePosition
 	
 	public SNFeatureExtraction(List<Quote> lq, String text)
 	{
@@ -52,8 +52,7 @@ public class SNFeatureExtraction {
 		countWordQuote = 0;
 		int countSpeaker = 0;
 		mapHelper = new LinkedHashMap<String, Integer>();
-		mapHelper2 = new TreeMap<Integer, SocialNetworkSpeaker>();
-		SocialNetworkSpeaker sns;
+		mapHelper2 = new TreeMap<Integer, Quote>();
 		
 		//loop through list quote to count word quote + check adjacency
 		Iterator<Quote> it = lq.iterator();
@@ -71,8 +70,7 @@ public class SNFeatureExtraction {
 			}
 			countWordQuote += q.text.length();
 			
-			sns = new SocialNetworkSpeaker(q.speaker.name,q.text.length());
-			mapHelper2.put(q.characterBeginOffset,sns);
+			mapHelper2.put(q.characterBeginOffset,q);
 		}
 		
 		Map<String, Integer> result = BuildMap();
@@ -147,24 +145,24 @@ public class SNFeatureExtraction {
 	     
 	     while(iterator.hasNext()) {
 	         Map.Entry me = (Map.Entry)iterator.next();
-	         if(name!="" && !name.equals(((SocialNetworkSpeaker)me.getValue()).name) && Distance(qp, (Integer)me.getKey()) < 300)
+	         if(name!="" && !name.equals(((Quote)me.getValue()).speaker.name) && Distance(qp, (Integer)me.getKey()) < 300)
 	         {
-       		 String pair1 = name + " " + ((SocialNetworkSpeaker)me.getValue()).name;
-       		 String pair2 = ((SocialNetworkSpeaker)me.getValue()).name + name;
+       		 String pair1 = name + " " + ((Quote)me.getValue()).speaker.name;
+       		 String pair2 = ((Quote)me.getValue()).speaker.name + " " + name;
        		 if(result.containsKey(pair1))
        		 {
-       			result.put(pair1, result.get(pair1) + l + ((SocialNetworkSpeaker)me.getValue()).quoteLength);
-       			result.put(pair2, result.get(pair2) + l + ((SocialNetworkSpeaker)me.getValue()).quoteLength);
+       			result.put(pair1, result.get(pair1) + l + ((Quote)me.getValue()).text.length());
+       			result.put(pair2, result.get(pair2) + l + ((Quote)me.getValue()).text.length());
        		 }
        		 else
        		 {
-       			 result.put(pair1,l + ((SocialNetworkSpeaker)me.getValue()).quoteLength);
-       			 result.put(pair2,l + ((SocialNetworkSpeaker)me.getValue()).quoteLength);
+       			 result.put(pair1,l + ((Quote)me.getValue()).text.length());
+       			 result.put(pair2,l + ((Quote)me.getValue()).text.length());
        		 }
 
 	         }
-	         name = ((SocialNetworkSpeaker)me.getValue()).name;
-	         l = ((SocialNetworkSpeaker)me.getValue()).quoteLength;
+	         name = ((Quote)me.getValue()).speaker.name;
+	         l = ((Quote)me.getValue()).text.length();
 	         qp = (Integer)me.getKey();
 	     }
 	     return result;
@@ -184,7 +182,7 @@ public class SNFeatureExtraction {
 	    List<String> checkName = new ArrayList<String>();
 	    while(iterator.hasNext()) {
 	    	Map.Entry me = (Map.Entry)iterator.next();
-	    	if(name!="" && checkName.contains(((SocialNetworkSpeaker)me.getValue()).name))
+	    	if(name!="" && checkName.contains(((Quote)me.getValue()).speaker.name))
 	    	{
 	    		if(index < num)
 	    		{
@@ -195,8 +193,8 @@ public class SNFeatureExtraction {
 	    			index = 0;
 	    		}
 	    	}
-	    	name = ((SocialNetworkSpeaker)me.getValue()).name;
-	        l = ((SocialNetworkSpeaker)me.getValue()).quoteLength;
+	    	name = ((Quote)me.getValue()).speaker.name;
+	        l = ((Quote)me.getValue()).text.length();
 	        qp = (Integer)me.getKey();
 	    }
 	    return 0;
