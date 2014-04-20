@@ -147,19 +147,18 @@ public class SNFeatureExtraction {
 	         Map.Entry me = (Map.Entry)iterator.next();
 	         if(name!="" && !name.equals(((Quote)me.getValue()).speaker.name) && Distance(qp, (Integer)me.getKey()) < 300)
 	         {
-       		 String pair1 = name + " " + ((Quote)me.getValue()).speaker.name;
-       		 String pair2 = ((Quote)me.getValue()).speaker.name + " " + name;
-       		 if(result.containsKey(pair1))
-       		 {
-       			result.put(pair1, result.get(pair1) + l + ((Quote)me.getValue()).text.length());
-       			result.put(pair2, result.get(pair2) + l + ((Quote)me.getValue()).text.length());
-       		 }
-       		 else
-       		 {
-       			 result.put(pair1,l + ((Quote)me.getValue()).text.length());
-       			 result.put(pair2,l + ((Quote)me.getValue()).text.length());
-       		 }
-
+	       		 String pair1 = name + " " + ((Quote)me.getValue()).speaker.name;
+	       		 String pair2 = ((Quote)me.getValue()).speaker.name + " " + name;
+	       		 if(result.containsKey(pair1))
+	       		 {
+	       			result.put(pair1, result.get(pair1) + l + ((Quote)me.getValue()).text.length());
+	       			result.put(pair2, result.get(pair2) + l + ((Quote)me.getValue()).text.length());
+	       		 }
+	       		 else
+	       		 {
+	       			 result.put(pair1,l + ((Quote)me.getValue()).text.length());
+	       			 result.put(pair2,l + ((Quote)me.getValue()).text.length());
+	       		 }
 	         }
 	         name = ((Quote)me.getValue()).speaker.name;
 	         l = ((Quote)me.getValue()).text.length();
@@ -171,33 +170,41 @@ public class SNFeatureExtraction {
 	//Not done yet
 	public int numClique(int num)
 	{
+		if(num > mapHelper.size())
+			return 0;
+		Set<?> set = mapHelper2.entrySet();
+	    Iterator<?> iterator = set.iterator();
 		int index = 0;
 		int count = 0;
 		String name = "";
-	    int l = 0;//length
-	    int qp = 0;//quotePosition
+	    int[] helper = new int[lq.size()];
 	    
-	    Set<?> set = mapHelper2.entrySet();
-	    Iterator<?> iterator = set.iterator();
-	    List<String> checkName = new ArrayList<String>();
 	    while(iterator.hasNext()) {
-	    	Map.Entry me = (Map.Entry)iterator.next();
-	    	if(name!="" && checkName.contains(((Quote)me.getValue()).speaker.name))
-	    	{
-	    		if(index < num)
-	    		{
-	    			
-	    		}
-	    		else
-	    		{
-	    			index = 0;
-	    		}
-	    	}
-	    	name = ((Quote)me.getValue()).speaker.name;
-	        l = ((Quote)me.getValue()).text.length();
-	        qp = (Integer)me.getKey();
+	         Map.Entry me = (Map.Entry)iterator.next();
+	         if(name!="")
+	         {
+	        	 if(name.equals(((Quote)me.getValue()).speaker.name))
+	        		 mapHelper2.remove(me.getKey());
+	        	 else{
+	        		 helper[index] = (Integer)me.getKey();
+	        	 }
+	         }
+	         name = ((Quote)me.getValue()).speaker.name;
+	         helper[index] = (Integer)me.getKey();
 	    }
-	    return 0;
+	    	
+	    for(int i = 0;i<helper.length - num;i++)
+	    {
+	    	int j = i;
+	    	while(j < i + num && Distance(helper[j],helper[j+1]) < 300)
+	    	{
+	    		j++;
+	    	}
+	    	if(j == i+num)
+	    		count++;
+	    		
+	    }
+	    return count;
 	}
 	
 	public int Distance(int begin, int end)
