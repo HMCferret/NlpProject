@@ -170,23 +170,23 @@ public class SNFeatureExtraction {
 			         //index++;
 		         }
 		    }
+	    	
+		    for(int i = 0;i<=helper.size() - num;i++)
+		    {
+		    	int j = i;
+		    	while(j < i + num - 1 && Distance(helper.get(j),helper.get(j+1)) < 300)
+		    	{
+		    		j++;
+		    	}
+		    	if(j == i + num - 1)
+		    		count++;
+		    }
+		    return count;
 	    }
 	    catch(Exception ex)
 	    {
-	    	System.out.println(ex);
+	    	return 0;
 	    }
-	    	
-	    for(int i = 0;i<=helper.size() - num;i++)
-	    {
-	    	int j = i;
-	    	while(j < i + num - 1 && Distance(helper.get(j),helper.get(j+1)) < 300)
-	    	{
-	    		j++;
-	    	}
-	    	if(j == i + num - 1)
-	    		count++;
-	    }
-	    return count;
 	}
 	
 	public int Distance(int begin, int end)
