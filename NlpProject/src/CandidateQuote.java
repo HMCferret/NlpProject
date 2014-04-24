@@ -40,4 +40,7 @@ public class CandidateQuote {
 	public int quotePosition;
 	public boolean otherCharPresence;
 	public boolean candidatePresence;
+	
+	public Person candidate;
+	public Quote quote;
 }
