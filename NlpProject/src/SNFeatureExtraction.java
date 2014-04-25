@@ -17,13 +17,11 @@ public class SNFeatureExtraction {
 	private int countWordQuote;// count word in quote
 	private Map<String, Integer> mapHelper;//store speakers's frequency
 	private Map<Integer, Quote> mapHelper2;//store speaker's quotePosition
-	private Set<String> names;
 	
-	public SNFeatureExtraction(List<Quote> lq, String text, Set<String> names)
+	public SNFeatureExtraction(List<Quote> lq, String text)
 	{
 		this.lq = lq;
 		this.text = text;
-		this.names = names;
 	}
 	
 	public ConversationalNetworkFeature ConstructNetwork()
@@ -63,7 +61,7 @@ public class SNFeatureExtraction {
 		cnf.MostFqtChar = 0;
 		
 		//1
-		cnf.numChar = names.size();
+		cnf.numChar = QuotedSpeechAttribution.names.size();
 		cnf.numSpeakingChar = mapHelper.size();
 		
 		//2

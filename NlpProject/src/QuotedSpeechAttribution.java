@@ -9,6 +9,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.Vector;
 
@@ -28,17 +29,18 @@ import edu.stanford.nlp.util.CoreMap;
 
 
 
+
 import java.util.Comparator;
 
 public class QuotedSpeechAttribution {
+	private static final int DIS_THRESH_IN_WORDS = 300; 
 
 	private Map<String, Person> nameMap;
 	private Annotation annotation;
 	private PrintWriter out;
-	
 	private boolean verbose;
 	private String originalText;
-	public Set<String> names;
+	public static Set<String> names;
 	
 	private TmpString[] tmpWords;
 	private TmpString[] tmpCandidates;
@@ -57,6 +59,11 @@ public class QuotedSpeechAttribution {
 			this.beginOffset = b;
 			this.endOffset = e;
 			this.txt = t;
+		}
+		@Override
+		public String toString()
+		{
+			return "(" + beginOffset + "," + endOffset + "): " + txt ;
 		}
 	}
 	
@@ -128,8 +135,8 @@ public class QuotedSpeechAttribution {
 			  String tmpPerson = null;
 			  int tmpPersonBegin = -1;
 			  int tmpPersonEnd = -1;
-		      for (CoreMap token : sentence
-						.get(CoreAnnotations.TokensAnnotation.class)) 
+			  int totalQuoteMarks = 0;
+		      for (CoreMap token : sentence.get(CoreAnnotations.TokensAnnotation.class)) 
 				{
 					
 					ArrayCoreMap aToken = (ArrayCoreMap) token;
@@ -145,40 +152,55 @@ public class QuotedSpeechAttribution {
 						tmpExpVerbs.add(new TmpString(beginOffset, endOffset, txt));
 					if(txt.equals("\""))
 					{
+						++totalQuoteMarks;
 						tmpQuoteMarks.add(new TmpString(beginOffset, endOffset, txt));
-					}
-					if (ne.equals("PERSON")) 
-					{
-						if (tmpPerson == null)
-						{
-							tmpPerson = txt;
-							tmpPersonBegin = beginOffset;
-							tmpPersonEnd = endOffset;
-						}
-						else
-						{
-							tmpPerson = tmpPerson + " " + txt;
-							tmpPersonEnd = endOffset;
-						}
-					} else 
-					{
-						if (tmpPerson != null)
-						{
-							tmpCandidates.add(new TmpString(tmpPersonBegin, tmpPersonEnd, tmpPerson));
-							tmpPerson = null;
-						}
 					}
 					
 				}
+		    int quoteMarkCnt = 0;
+		    if(totalQuoteMarks%2 == 1)
+		    {
+		    	if(!sentence.get(CoreAnnotations.TextAnnotation.class).startsWith("\"")) ++quoteMarkCnt;
+		    }
+			for (CoreMap token : sentence
+					.get(CoreAnnotations.TokensAnnotation.class)) 
+			{
+				ArrayCoreMap aToken = (ArrayCoreMap) token;
+				String ne = aToken
+						.get(CoreAnnotations.NamedEntityTagAnnotation.class);
+				String txt = aToken
+						.get(CoreAnnotations.OriginalTextAnnotation.class);
+				int beginOffset = aToken
+						.get(CoreAnnotations.CharacterOffsetBeginAnnotation.class);
+				int endOffset = aToken
+						.get(CoreAnnotations.CharacterOffsetEndAnnotation.class);
+				if(txt.startsWith("\"")) ++quoteMarkCnt;
+				//if(quoteMarkCnt%2 == 1) continue;
+				if (ne.equals("PERSON")) {
+					if (tmpPerson == null) {
+						tmpPerson = txt;
+						tmpPersonBegin = beginOffset;
+						tmpPersonEnd = endOffset;
+					} else {
+						tmpPerson = tmpPerson + " " + txt;
+						tmpPersonEnd = endOffset;
+					}
+				} else {
+					if (tmpPerson != null) {
+						tmpCandidates.add(new TmpString(tmpPersonBegin,
+								tmpPersonEnd, tmpPerson));
+						tmpPerson = null;
+					}
+				}
+			}
 		  }
-		/*
+		
 		System.out.println("para #: " + tmpPnums.size());
 		for(int i=0; i<5 && i < tmpPnums.size(); ++i)
 		{
 			TmpParagraphNum n = tmpPnums.get(i);
 			System.out.println(n.num + "(" +  n.beginOffset + "," + n.endOffset + "):" + this.originalText.substring(n.beginOffset, n.endOffset));
 		}
-		
 		System.out.println("tmpWords #: " + tmpWords.size());
 		for(int i=0; i<5; ++i)
 		{
@@ -205,7 +227,7 @@ public class QuotedSpeechAttribution {
 			TmpString n = tmpExpVerbs.get(i);
 			System.out.println("expVerb(" +  n.beginOffset + "," + n.endOffset + "):" + this.originalText.substring(n.beginOffset, n.endOffset));
 		}		
-		*/
+		
 		this.tmpWords = tmpWords.toArray(new TmpString[tmpWords.size()]);
 		this.tmpExpVerb = tmpExpVerbs.toArray(new TmpString[tmpExpVerbs.size()]);
 		this.tmpPraragrahNums = tmpPnums.toArray(new TmpParagraphNum[tmpPnums.size()]);
@@ -249,7 +271,13 @@ public class QuotedSpeechAttribution {
 		      processSentence(paragraphNum, sentence, ret);
 		      
 		  }
-		
+		//int cqCnt = 0;
+		out.println("****************************");
+		for(CandidateQuote cq:this.candidateQuotes)
+		{
+			out.println("CandidateQuote(" + cq.candidate.name + "," + this.originalText.substring(cq.quoteBeginOffset, cq.quoteEndOffset) );
+			out.println("Distance=" + cq.distance);
+		}
 		return ret;
 	}
 	static int debugQuoteCnt = 0;
@@ -318,15 +346,61 @@ public class QuotedSpeechAttribution {
 			pQuote = bQuote;
 			while(pQuote < eQuote)
 			{
-				extractCandidateQuoteForOneQuote(paragraphNum, sentence, pQuote, pQuote + 1);
+				extractCandidateQuoteForOneQuote(paragraphNum, sentence, pQuote);
 				pQuote += 2;
 			}
 		}
 	}
 	
-	private void extractCandidateQuoteForOneQuote(int paragraphNum, ArrayCoreMap sentence, int bQuote, int eQuote)
+	private void extractCandidateQuoteForOneQuote(int paragraphNum, ArrayCoreMap sentence, int bQuote)
 	{
+		if(this.candidateQuotes == null) this.candidateQuotes = new ArrayList<CandidateQuote>();
+		Map<Person, Integer> candidateDistance = new TreeMap<Person, Integer>(new Comparator<Person>(){
+			public int compare(Person a, Person b) {
+				return a.Id - b.Id;
+			}
+		});
+		int lastCandidateBeforeQuote = this.binarySearchBefore(this.tmpQuoteMarks[bQuote].beginOffset,
+				this.tmpCandidates);
+		int firstCandidateAfterQuote = this.binarySearchAfter(this.tmpQuoteMarks[bQuote+1].endOffset,
+				this.tmpCandidates);
+		for(int pCand = lastCandidateBeforeQuote; pCand >= 0; --pCand)
+		{
+			int beginOffset = this.tmpCandidates[pCand].endOffset;
+			int endOffset = this.tmpQuoteMarks[bQuote].beginOffset;
+			int distance = getDistanceInWords(beginOffset, endOffset);
+			if(distance > DIS_THRESH_IN_WORDS) break;
+			Person p = this.nameMap.get(this.tmpCandidates[pCand].txt);
+			if(!candidateDistance.containsKey(p)) candidateDistance.put(p, distance);
+		}
 		
+		for(int pCand = firstCandidateAfterQuote; pCand < this.tmpCandidates.length; ++pCand)
+		{
+			int beginOffset = this.tmpQuoteMarks[bQuote].endOffset;
+			int endOffset = this.tmpCandidates[pCand].beginOffset;
+			int distance = getDistanceInWords(beginOffset, endOffset);
+			if(distance > DIS_THRESH_IN_WORDS) break;
+			Person p = this.nameMap.get(this.tmpCandidates[pCand].txt);
+			if(!candidateDistance.containsKey(p) || candidateDistance.get(p) >distance) candidateDistance.put(p, distance);
+		}
+		for(Person p: candidateDistance.keySet())
+		{
+			CandidateQuote cq = new CandidateQuote();
+			cq.candidate = p;
+			cq.quoteBeginOffset = this.tmpQuoteMarks[bQuote].beginOffset;
+			cq.quoteEndOffset = this.tmpQuoteMarks[bQuote+1].endOffset;
+			cq.distance = candidateDistance.get(p);
+			this.candidateQuotes.add(cq);
+		}
+		
+	}
+
+	private int getDistanceInWords(int beginOffset, int endOffset) {
+		// TODO Auto-generated method stub
+		int bWords = this.binarySearchAfter(beginOffset, this.tmpWords);
+		int eWords = this.binarySearchBefore(endOffset, this.tmpWords) + 1;
+		if(eWords < bWords) throw new IllegalStateException();
+		return eWords - bWords;
 	}
 
 	private int binarySearchAfter(int bOffset, TmpString[] array)

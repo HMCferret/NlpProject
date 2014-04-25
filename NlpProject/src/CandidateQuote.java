@@ -42,5 +42,6 @@ public class CandidateQuote {
 	public boolean candidatePresence;
 	
 	public Person candidate;
-	public Quote quote;
+	public int quoteBeginOffset;
+	public int quoteEndOffset;
 }
