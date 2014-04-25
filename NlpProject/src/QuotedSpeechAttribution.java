@@ -38,7 +38,7 @@ public class QuotedSpeechAttribution {
 	
 	private boolean verbose;
 	private String originalText;
-	public static Set<String> names;
+	public Set<String> names;
 	
 	private TmpString[] tmpWords;
 	private TmpString[] tmpCandidates;
@@ -171,13 +171,14 @@ public class QuotedSpeechAttribution {
 					
 				}
 		  }
-		
+		/*
 		System.out.println("para #: " + tmpPnums.size());
 		for(int i=0; i<5 && i < tmpPnums.size(); ++i)
 		{
 			TmpParagraphNum n = tmpPnums.get(i);
 			System.out.println(n.num + "(" +  n.beginOffset + "," + n.endOffset + "):" + this.originalText.substring(n.beginOffset, n.endOffset));
 		}
+		
 		System.out.println("tmpWords #: " + tmpWords.size());
 		for(int i=0; i<5; ++i)
 		{
@@ -204,7 +205,7 @@ public class QuotedSpeechAttribution {
 			TmpString n = tmpExpVerbs.get(i);
 			System.out.println("expVerb(" +  n.beginOffset + "," + n.endOffset + "):" + this.originalText.substring(n.beginOffset, n.endOffset));
 		}		
-		
+		*/
 		this.tmpWords = tmpWords.toArray(new TmpString[tmpWords.size()]);
 		this.tmpExpVerb = tmpExpVerbs.toArray(new TmpString[tmpExpVerbs.size()]);
 		this.tmpPraragrahNums = tmpPnums.toArray(new TmpParagraphNum[tmpPnums.size()]);

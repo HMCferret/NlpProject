@@ -55,7 +55,7 @@ public class Main {
 		    }
 			Set<String> setName = StandfordWrapper.getNames(input);
 			
-		SNFeatureExtraction snfe = new SNFeatureExtraction(list,text);
+		SNFeatureExtraction snfe = new SNFeatureExtraction(list,text, qsa.names);
 		ConversationalNetworkFeature cnf = snfe.ConstructNetwork();
 		
 		System.out.println("cnf.numChar: " + cnf.numChar);
