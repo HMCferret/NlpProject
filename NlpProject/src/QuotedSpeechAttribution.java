@@ -40,7 +40,7 @@ public class QuotedSpeechAttribution {
 	private PrintWriter out;
 	private boolean verbose;
 	private String originalText;
-	public static Set<String> names;
+	public Set<String> names;
 	
 	private TmpString[] tmpWords;
 	private TmpString[] tmpCandidates;
@@ -272,6 +272,7 @@ public class QuotedSpeechAttribution {
 		      
 		  }
 		//int cqCnt = 0;
+		if(this.candidateQuotes == null) return ret;
 		out.println("****************************");
 		for(CandidateQuote cq:this.candidateQuotes)
 		{
