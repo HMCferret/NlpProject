@@ -1,4 +1,7 @@
+import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
 import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.util.ArrayList;
@@ -31,7 +34,9 @@ public class Main {
 		    } else {
 		      out = new PrintWriter(System.out, true);
 		    }
-		    String text = "Yubin send an email to Stanford University. \"Die hard\" Kosgi said \"Live strong.\" Tu said \"Wow if only this works!\" He loves his father";	    
+		    String text2 = "Yubin send an email to Stanford University. \"Die hard\" Kosgi said \"Live strong.\" Tu said \"Wow if only this works!\" He loves his father";	
+			String file = new File("DataSet/novels/Fiction/fi_fold1/failure1/11005.txt").getAbsolutePath();
+		    String text = readFile(file);
 		    Annotation input = new Annotation(text);
 		    if (args.length > 0) {
 		    	input = new Annotation(IOUtils.slurpFileNoExceptions(args[0]));
@@ -76,6 +81,23 @@ public class Main {
 		
 		//Demo();
 	}
+	
+	 public static String readFile(String filePath)
+		{
+			String content = null;
+			File file = new File(filePath);
+			try {
+				FileReader reader = new FileReader(file);
+				char[] chars = new char[(int) file.length()];
+				reader.read(chars);
+				content = new String(chars);
+				reader.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+			return content;
+		}
+	
 	public static void Demo() throws Exception
 	{
 		List<CandidateQuote> cq = new ArrayList<CandidateQuote>();
@@ -143,4 +165,6 @@ public class Main {
 	    Instances data = att.ShowData();
 	    System.out.println(data);
 	}
+	
+	
 }
