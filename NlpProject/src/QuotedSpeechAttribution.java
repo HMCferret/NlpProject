@@ -281,10 +281,7 @@ public class QuotedSpeechAttribution {
 		}
 		return ret;
 	}
-	static int debugQuoteCnt = 0;
-	static int[] cntQuote = {0,0,0,0, 0};
-	static int cntQuoteMore = 0;
-	static int cntMiddleQuote = 0;
+
 	
 	private void processSentence(int paragraphNum, ArrayCoreMap sentence, Vector<Quote> ret) 
 	{		
