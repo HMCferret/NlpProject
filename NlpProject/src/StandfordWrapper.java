@@ -25,38 +25,5 @@ public class StandfordWrapper {
 	}
 	
 	
-	public static Set<String> getNames(Annotation annotation)
-	{
-		 List<CoreMap> sentences = annotation.get(CoreAnnotations.SentencesAnnotation.class);
-		 Set<String> names = new TreeSet<String>();
-		 for(int i=0; i<sentences.size(); ++i)
-		 {
-		      ArrayCoreMap sentence = (ArrayCoreMap) sentences.get(i);    
-		      //Tree tree = sentence.get(TreeCoreAnnotations.TreeAnnotation.class);
-		      String name = null;
-		      for (CoreMap token : sentence.get(CoreAnnotations.TokensAnnotation.class)) {
-		    	  ArrayCoreMap aToken = (ArrayCoreMap) token;
-		    	  String ne = aToken.get(CoreAnnotations.NamedEntityTagAnnotation.class);
-		    	  String txt = aToken.get(CoreAnnotations.TextAnnotation.class);
-		    	  if(ne.equals("PERSON"))
-		    	  {
-		    		  //System.out.println();
-		    		  if(name != null)
-		    			  name = name + " " + txt;
-		    		  else 
-		    			  name = txt;
-		    	  }
-		    	  else
-		    	  {
-		    		  if(name != null)
-		    		  {
-		    			  names.add(name);
-		    			  name = null;
-		    		  }
-		    	  }
-		      }
-		      
-		  }
-		 return names;
-	}
+	
 }

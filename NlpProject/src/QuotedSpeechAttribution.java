@@ -30,6 +30,7 @@ import edu.stanford.nlp.util.CoreMap;
 
 
 
+
 import java.util.Comparator;
 
 public class QuotedSpeechAttribution {
@@ -47,6 +48,7 @@ public class QuotedSpeechAttribution {
 	private TmpString[] tmpQuoteMarks;
 	private TmpParagraphNum[] tmpPraragrahNums;
 	private TmpString[] tmpExpVerb;
+	private TmpString[] tmpCandidatesInQuote;
 	
 	List<CandidateQuote> candidateQuotes;
 	
@@ -97,15 +99,12 @@ public class QuotedSpeechAttribution {
 	    StandfordWrapper.annotate(annotation, out);
 	    if(verbose) Util.debug("Annotation ends");
 	    
-		names = StandfordWrapper.getNames(annotation);
+		names = getNames(annotation);
 	    System.out.println(names);
 	    generateNameMap(names);
 	    if(verbose) Util.debug(nameMap);
 	    
-	    String path = new File("dict").getAbsolutePath();
-		URL url = new URL("file", null, path);
-		dict = new Dictionary(url);
-		dict.open();
+	   
 		
 		initAllTempArrays();
 	}
@@ -117,7 +116,7 @@ public class QuotedSpeechAttribution {
 		List<TmpParagraphNum> tmpPnums = new ArrayList<TmpParagraphNum>();
 		List<TmpString> tmpQuoteMarks = new ArrayList<TmpString>();
 		List<TmpString> tmpExpVerbs = new ArrayList<QuotedSpeechAttribution.TmpString>();
-		
+		List<TmpString> tmpCandidatesInQuote = new ArrayList<TmpString>();
 		List<CoreMap> sentences = annotation.get(CoreAnnotations.SentencesAnnotation.class);
 		int paragraphNum = 0, prevParapraphOffset = 0;
 		for(int i=0; i<sentences.size(); ++i)
@@ -143,13 +142,11 @@ public class QuotedSpeechAttribution {
 					String ne = aToken
 							.get(CoreAnnotations.NamedEntityTagAnnotation.class);
 					String txt = aToken.get(CoreAnnotations.OriginalTextAnnotation.class);
-					String lemma = aToken.get(CoreAnnotations.LemmaAnnotation.class);
 					int beginOffset = aToken.get(CoreAnnotations.CharacterOffsetBeginAnnotation.class);
 					int endOffset = aToken.get(CoreAnnotations.CharacterOffsetEndAnnotation.class);
 					
 					tmpWords.add(new TmpString(beginOffset, endOffset, txt));
-					if (this.isVerbalExpression(lemma))
-						tmpExpVerbs.add(new TmpString(beginOffset, endOffset, txt));
+					
 					if(txt.equals("\""))
 					{
 						++totalQuoteMarks;
@@ -174,8 +171,11 @@ public class QuotedSpeechAttribution {
 						.get(CoreAnnotations.CharacterOffsetBeginAnnotation.class);
 				int endOffset = aToken
 						.get(CoreAnnotations.CharacterOffsetEndAnnotation.class);
+				String lemma = aToken.get(CoreAnnotations.LemmaAnnotation.class);
+
 				if(txt.startsWith("\"")) ++quoteMarkCnt;
-				//if(quoteMarkCnt%2 == 1) continue;
+				if (this.isVerbalExpression(lemma) && quoteMarkCnt % 2 == 0)
+					tmpExpVerbs.add(new TmpString(beginOffset, endOffset, txt));
 				if (ne.equals("PERSON")) {
 					if (tmpPerson == null) {
 						tmpPerson = txt;
@@ -187,7 +187,11 @@ public class QuotedSpeechAttribution {
 					}
 				} else {
 					if (tmpPerson != null) {
-						tmpCandidates.add(new TmpString(tmpPersonBegin,
+						if(quoteMarkCnt%2 == 1) 
+							tmpCandidatesInQuote.add(new TmpString(tmpPersonBegin,
+								tmpPersonEnd, tmpPerson));
+						else
+							tmpCandidates.add(new TmpString(tmpPersonBegin,
 								tmpPersonEnd, tmpPerson));
 						tmpPerson = null;
 					}
@@ -206,42 +210,57 @@ public class QuotedSpeechAttribution {
 		{
 			TmpString n = tmpWords.get(i);
 			System.out.println("word(" +  n.beginOffset + "," + n.endOffset + "):" + this.originalText.substring(n.beginOffset, n.endOffset));
-		}
+		}*/
 		System.out.println("tmpCandiates #: " + tmpCandidates.size());
-		for(int i=0; i<5; ++i)
+		
+		for(int i=0; i<5 && i < tmpCandidates.size(); ++i)
 		{
 			TmpString n = tmpCandidates.get(i);
 			System.out.println("Candiates(" +  n.beginOffset + "," + n.endOffset + "):" + this.originalText.substring(n.beginOffset, n.endOffset));
 		}
 		
+		System.out.println("tmpCandidatesInQuote #: " + tmpCandidatesInQuote.size());
+		
+		for(int i=0; i<5 && i < tmpCandidatesInQuote.size(); ++i)
+		{
+			TmpString n = tmpCandidatesInQuote.get(i);
+			System.out.println("CandiatesInQuote(" +  n.beginOffset + "," + n.endOffset + "):" + this.originalText.substring(n.beginOffset, n.endOffset));
+		}
+		
 		System.out.println("tmpQuoteMarks #: " + tmpQuoteMarks.size());
-		for(int i=0; i<5; ++i)
+		/*for(int i=0; i<5; ++i)
 		{
 			TmpString n = tmpQuoteMarks.get(i);
 			System.out.println("qmark(" +  n.beginOffset + "," + n.endOffset + "):" + this.originalText.substring(n.beginOffset, n.endOffset));
-		}
+		}*/
 		
 		System.out.println("tmpExpVerbs #: " + tmpExpVerbs.size());
-		for(int i=0; i<5; ++i)
+		for(int i=0; i<5 && i < tmpExpVerbs.size(); ++i)
 		{
 			TmpString n = tmpExpVerbs.get(i);
 			System.out.println("expVerb(" +  n.beginOffset + "," + n.endOffset + "):" + this.originalText.substring(n.beginOffset, n.endOffset));
 		}		
-		*/
+		
 		this.tmpWords = tmpWords.toArray(new TmpString[tmpWords.size()]);
 		this.tmpExpVerb = tmpExpVerbs.toArray(new TmpString[tmpExpVerbs.size()]);
 		this.tmpPraragrahNums = tmpPnums.toArray(new TmpParagraphNum[tmpPnums.size()]);
 		this.tmpQuoteMarks = tmpQuoteMarks.toArray(new TmpString[tmpQuoteMarks.size()]);
 		this.tmpCandidates = tmpCandidates.toArray(new TmpString[tmpCandidates.size()]);
+		this.tmpCandidatesInQuote = tmpCandidatesInQuote.toArray(new TmpString[tmpCandidatesInQuote.size()]);
 	}
 	
-	public QuotedSpeechAttribution(Annotation annotation, PrintWriter out, boolean verbose)
+	public QuotedSpeechAttribution(Annotation annotation, PrintWriter out, boolean verbose) throws IOException
 	{
 		this.annotation = annotation;
 		this.originalText = annotation.get(CoreAnnotations.TextAnnotation.class);
+		
 		this.out = out;
 		this.nameMap = null;
 		this.verbose = verbose;
+		 String path = new File("dict").getAbsolutePath();
+			URL url = new URL("file", null, path);
+			dict = new Dictionary(url);
+			dict.open();
 	}
 	
 	private int updateParagraphNum(int current, ArrayCoreMap sentence)
@@ -374,7 +393,7 @@ public class QuotedSpeechAttribution {
 		
 		for(int pCand = firstCandidateAfterQuote; pCand < this.tmpCandidates.length; ++pCand)
 		{
-			int beginOffset = this.tmpQuoteMarks[bQuote].endOffset;
+			int beginOffset = this.tmpQuoteMarks[bQuote+1].endOffset;
 			int endOffset = this.tmpCandidates[pCand].beginOffset;
 			int distance = getDistanceInWords(beginOffset, endOffset);
 			if(distance > DIS_THRESH_IN_WORDS) break;
@@ -448,12 +467,47 @@ public class QuotedSpeechAttribution {
 		return (lf=="verb.communication")||(lf=="verb.cognition")||(lf=="verb.emotion");
 		}catch(Exception e)
 		{
-			System.out.println("WARNING(exception): word is " + word);
+			//System.out.print("WARNING(exception): word is " + word);
 			//e.printStackTrace();
 			return false;
 		}
 		
 		
+	}
+	
+	public Set<String> getNames(Annotation annotation)
+	{
+		 List<CoreMap> sentences = annotation.get(CoreAnnotations.SentencesAnnotation.class);
+		 Set<String> names = new TreeSet<String>();
+		 for(int i=0; i<sentences.size(); ++i)
+		 {
+		      ArrayCoreMap sentence = (ArrayCoreMap) sentences.get(i);    
+		      //Tree tree = sentence.get(TreeCoreAnnotations.TreeAnnotation.class);
+		      String name = null;
+		      for (CoreMap token : sentence.get(CoreAnnotations.TokensAnnotation.class)) {
+		    	  ArrayCoreMap aToken = (ArrayCoreMap) token;
+		    	  String ne = aToken.get(CoreAnnotations.NamedEntityTagAnnotation.class);
+		    	  String txt = aToken.get(CoreAnnotations.TextAnnotation.class);
+		    	  if(ne.equals("PERSON"))
+		    	  {
+		    		  //System.out.println();
+		    		  if(name != null)
+		    			  name = name + " " + txt;
+		    		  else 
+		    			  name = txt;
+		    	  }
+		    	  else
+		    	  {
+		    		  if(name != null)
+		    		  {
+		    			  names.add(name);
+		    			  name = null;
+		    		  }
+		    	  }
+		      }
+		      
+		  }
+		 return names;
 	}
 
 }

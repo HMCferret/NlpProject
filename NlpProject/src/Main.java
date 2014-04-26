@@ -53,7 +53,7 @@ public class Main {
 		    	Quote q= it.next();
 		    	System.out.println(++cnt + ":" + "[" + q.speaker.name + "]" + "=>" + q.text);
 		    }
-			Set<String> setName = StandfordWrapper.getNames(input);
+			//Set<String> setName = StandfordWrapper.getNames(input);
 			
 		SNFeatureExtraction snfe = new SNFeatureExtraction(list, text, qsa.names);
 		ConversationalNetworkFeature cnf = snfe.ConstructNetwork();
