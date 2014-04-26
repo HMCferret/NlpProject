@@ -20,11 +20,13 @@ import edu.mit.jwi.item.IWord;
 import edu.mit.jwi.item.IWordID;
 import edu.mit.jwi.item.POS;
 import edu.stanford.nlp.ling.CoreAnnotations;
+import edu.stanford.nlp.ling.CoreLabel;
 import edu.stanford.nlp.pipeline.Annotation;
 import edu.stanford.nlp.trees.Tree;
 import edu.stanford.nlp.trees.TreeCoreAnnotations;
 import edu.stanford.nlp.util.ArrayCoreMap;
 import edu.stanford.nlp.util.CoreMap;
+
 
 
 
@@ -159,10 +161,11 @@ public class QuotedSpeechAttribution {
 		    {
 		    	if(!sentence.get(CoreAnnotations.TextAnnotation.class).startsWith("\"")) ++quoteMarkCnt;
 		    }
-			for (CoreMap token : sentence
-					.get(CoreAnnotations.TokensAnnotation.class)) 
+		    List tokens = sentence
+					.get(CoreAnnotations.TokensAnnotation.class);
+			for (int j=0; j<tokens.size(); ++j) 
 			{
-				ArrayCoreMap aToken = (ArrayCoreMap) token;
+				ArrayCoreMap aToken = (ArrayCoreMap) tokens.get(j);
 				String ne = aToken
 						.get(CoreAnnotations.NamedEntityTagAnnotation.class);
 				String txt = aToken
@@ -194,6 +197,14 @@ public class QuotedSpeechAttribution {
 							tmpCandidates.add(new TmpString(tmpPersonBegin,
 								tmpPersonEnd, tmpPerson));
 						tmpPerson = null;
+					}else if(this.isPerson(txt))
+					{
+						if(quoteMarkCnt%2 == 1) 
+							tmpCandidatesInQuote.add(new TmpString(beginOffset,
+								endOffset, txt));
+						else
+							tmpCandidates.add(new TmpString(beginOffset,
+									endOffset, txt));
 					}
 				}
 			}
@@ -327,6 +338,7 @@ public class QuotedSpeechAttribution {
 		int pQuote = bQuote;
 		int bOffset = beginOffsetSen;
 		String expVerb = null;
+		boolean nonNECandidateExists = false;
 		while(pQuote <= eQuote)
 		{
 			int eOffset = pQuote == eQuote ? endOffsetSen: this.tmpQuoteMarks[pQuote].beginOffset;
@@ -341,14 +353,18 @@ public class QuotedSpeechAttribution {
 				for(int pCandidate = bCandidate; pCandidate < eCandidate; ++ pCandidate)
 				{
 					String name = this.tmpCandidates[pCandidate].txt;
-					speakers.add(this.nameMap.get(name));
+					Person person = this.nameMap.get(name);
+					if(person != null)
+						speakers.add(this.nameMap.get(name));
+					else
+						nonNECandidateExists = true;
 				}
 			}
 			if(pQuote == eQuote) break;
 			bOffset = this.tmpQuoteMarks[pQuote + 1].beginOffset + 1;
 			pQuote += 2;
 		}
-		if(expVerb != null && speakers.size() == 1)
+		if(expVerb != null && speakers.size() == 1 && !nonNECandidateExists)
 		{
 			pQuote = bQuote;
 			while(pQuote < eQuote)
@@ -388,7 +404,7 @@ public class QuotedSpeechAttribution {
 			int distance = getDistanceInWords(beginOffset, endOffset);
 			if(distance > DIS_THRESH_IN_WORDS) break;
 			Person p = this.nameMap.get(this.tmpCandidates[pCand].txt);
-			if(!candidateDistance.containsKey(p)) candidateDistance.put(p, distance);
+			if(p != null && !candidateDistance.containsKey(p)) candidateDistance.put(p, distance);
 		}
 		
 		for(int pCand = firstCandidateAfterQuote; pCand < this.tmpCandidates.length; ++pCand)
@@ -398,7 +414,7 @@ public class QuotedSpeechAttribution {
 			int distance = getDistanceInWords(beginOffset, endOffset);
 			if(distance > DIS_THRESH_IN_WORDS) break;
 			Person p = this.nameMap.get(this.tmpCandidates[pCand].txt);
-			if(!candidateDistance.containsKey(p) || candidateDistance.get(p) >distance) candidateDistance.put(p, distance);
+			if(p != null && (!candidateDistance.containsKey(p) || candidateDistance.get(p) >distance)) candidateDistance.put(p, distance);
 		}
 		for(Person p: candidateDistance.keySet())
 		{
@@ -444,35 +460,40 @@ public class QuotedSpeechAttribution {
 	}
 	
 	private IDictionary dict;
-	public boolean isVerbalExpression(String word)  
+	public boolean checkWordNet(String word, POS pos, String[] cmps, boolean checkAll)  
 	{
-		/*
-		String [] simple = {"say", "says", "said"};
-		for(int i=0; i<simple.length; ++i)
-		{
-			if(simple[i].equalsIgnoreCase(word)) return true;
-		}
-		return false;*/
-		//if(word == null || word.length() == 0 || word.equals(" ")) return false;
-		try{
-		IIndexWord idxWord = dict.getIndexWord (word, POS.VERB );
-		if(idxWord==null){
-			//System.out.println("Not a verb");
+		try {
+			IIndexWord idxWord = dict.getIndexWord(word, pos);
+			if (idxWord == null) {
+				// System.out.println("Not a verb");
+				return false;
+			}
+			for(IWordID wordID: idxWord.getWordIDs())
+			{
+				IWord wd = dict.getWord(wordID);
+				String lf = wd.getSenseKey().getLexicalFile().toString();
+				for(String cmp: cmps)
+					if (lf.equals(cmp))
+						return true;
+				if(!checkAll) break;
+			}
+			
+		} catch (Exception e) {
+			// System.out.print("WARNING(exception): word is " + word);
+			// e.printStackTrace();
 			return false;
 		}
-		IWordID wordID = idxWord . getWordIDs ().get (0) ;
-		IWord wd = dict.getWord ( wordID );
-		String lf = wd.getSenseKey().getLexicalFile().toString();
-		
-		return (lf=="verb.communication")||(lf=="verb.cognition")||(lf=="verb.emotion");
-		}catch(Exception e)
-		{
-			//System.out.print("WARNING(exception): word is " + word);
-			//e.printStackTrace();
-			return false;
-		}
-		
-		
+		return false;
+	}
+	
+	public boolean isVerbalExpression(String word)
+	{
+		return checkWordNet(word, POS.VERB, new String[]{"verb.communication", "verb.cognition", "verb.emotion"}, true);
+	}
+	
+	public boolean isPerson(String word)  
+	{
+		return checkWordNet(word, POS.NOUN, new String[]{"noun.person"}, true);
 	}
 	
 	public Set<String> getNames(Annotation annotation)
@@ -484,7 +505,9 @@ public class QuotedSpeechAttribution {
 		      ArrayCoreMap sentence = (ArrayCoreMap) sentences.get(i);    
 		      //Tree tree = sentence.get(TreeCoreAnnotations.TreeAnnotation.class);
 		      String name = null;
-		      for (CoreMap token : sentence.get(CoreAnnotations.TokensAnnotation.class)) {
+		      List<CoreLabel> tokens = sentence.get(CoreAnnotations.TokensAnnotation.class);
+		      for (int j=0; j<tokens.size(); ++j) {
+		    	  CoreMap token = tokens.get(j);
 		    	  ArrayCoreMap aToken = (ArrayCoreMap) token;
 		    	  String ne = aToken.get(CoreAnnotations.NamedEntityTagAnnotation.class);
 		    	  String txt = aToken.get(CoreAnnotations.TextAnnotation.class);
@@ -502,6 +525,12 @@ public class QuotedSpeechAttribution {
 		    		  {
 		    			  names.add(name);
 		    			  name = null;
+		    		  }
+		    		  else
+		    		  {
+		    			  /*
+		    			  if(this.isPerson(txt))
+		    				  names.add(txt);*/
 		    		  }
 		    	  }
 		      }
