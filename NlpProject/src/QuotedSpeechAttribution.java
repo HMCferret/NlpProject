@@ -5,6 +5,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -26,6 +27,7 @@ import edu.stanford.nlp.trees.Tree;
 import edu.stanford.nlp.trees.TreeCoreAnnotations;
 import edu.stanford.nlp.util.ArrayCoreMap;
 import edu.stanford.nlp.util.CoreMap;
+
 
 
 
@@ -137,34 +139,31 @@ public class QuotedSpeechAttribution {
 			  int tmpPersonBegin = -1;
 			  int tmpPersonEnd = -1;
 			  int totalQuoteMarks = 0;
+			  int firstQuoteMarkOffset = -1;
 		      for (CoreMap token : sentence.get(CoreAnnotations.TokensAnnotation.class)) 
 				{
-					
 					ArrayCoreMap aToken = (ArrayCoreMap) token;
-					String ne = aToken
-							.get(CoreAnnotations.NamedEntityTagAnnotation.class);
 					String txt = aToken.get(CoreAnnotations.OriginalTextAnnotation.class);
 					int beginOffset = aToken.get(CoreAnnotations.CharacterOffsetBeginAnnotation.class);
 					int endOffset = aToken.get(CoreAnnotations.CharacterOffsetEndAnnotation.class);
-					
 					tmpWords.add(new TmpString(beginOffset, endOffset, txt));
-					
 					if(txt.equals("\""))
 					{
+						if(firstQuoteMarkOffset == -1) firstQuoteMarkOffset = beginOffset;
 						++totalQuoteMarks;
 						tmpQuoteMarks.add(new TmpString(beginOffset, endOffset, txt));
 					}
-					
 				}
 		    int quoteMarkCnt = 0;
-		    if(totalQuoteMarks%2 == 1)
-		    {
-		    	if(!sentence.get(CoreAnnotations.TextAnnotation.class).startsWith("\"")) ++quoteMarkCnt;
-		    }
+		    int[] adjust = this.adjustQuoteIndexs(totalQuoteMarks, sentence, firstQuoteMarkOffset);
+		    if(adjust[0] == -1) ++ quoteMarkCnt;
+		    
+		    
 		    List tokens = sentence
 					.get(CoreAnnotations.TokensAnnotation.class);
 			for (int j=0; j<tokens.size(); ++j) 
 			{
+			
 				ArrayCoreMap aToken = (ArrayCoreMap) tokens.get(j);
 				String ne = aToken
 						.get(CoreAnnotations.NamedEntityTagAnnotation.class);
@@ -175,7 +174,7 @@ public class QuotedSpeechAttribution {
 				int endOffset = aToken
 						.get(CoreAnnotations.CharacterOffsetEndAnnotation.class);
 				String lemma = aToken.get(CoreAnnotations.LemmaAnnotation.class);
-
+				
 				if(txt.startsWith("\"")) ++quoteMarkCnt;
 				if (this.isVerbalExpression(lemma) && quoteMarkCnt % 2 == 0)
 					tmpExpVerbs.add(new TmpString(beginOffset, endOffset, txt));
@@ -304,17 +303,88 @@ public class QuotedSpeechAttribution {
 		//int cqCnt = 0;
 		if(this.candidateQuotes == null) return ret;
 		out.println("****************************");
+		int cntUniqueQuote = 0, prevOffset = -1, cntTotal=0;
 		for(CandidateQuote cq:this.candidateQuotes)
 		{
+			++cntTotal;
+			if(cq.quoteBeginOffset != prevOffset) ++cntUniqueQuote;
 			out.println("CandidateQuote(" + cq.candidate.name + "," + this.originalText.substring(cq.quoteBeginOffset, cq.quoteEndOffset) );
 			out.println("Distance=" + cq.distance);
+			prevOffset = cq.quoteBeginOffset;
 		}
+		
+		System.out.println("cntUniqueQuote:" + cntUniqueQuote + ", cntTotal=" + cntTotal);
 		return ret;
 	}
 
+	private boolean isSpace(int offset)
+	{
+		if(offset < 0 || offset >=this.originalText.length()) return true;
+		return Character.isSpaceChar(this.originalText.charAt(offset)) || Character.isWhitespace(this.originalText.charAt(offset));
+	}
 	
+	private int[] adjustQuoteIndexs(int totalQuoteMark, CoreMap sentence, int quoteOffset)
+	{
+		int beginOffsetSen = sentence.get(CoreAnnotations.CharacterOffsetBeginAnnotation.class);
+		int endOffsetSen = sentence.get(CoreAnnotations.CharacterOffsetEndAnnotation.class);
+		
+		int eQuote = 0, bQuote = 0;
+		if(totalQuoteMark % 2 == 0)
+		{
+			int bQuoteOffset = quoteOffset;
+			if(this.isSpace(bQuoteOffset+1) && !this.isSpace(bQuoteOffset-1))
+				{
+				--bQuote;
+				++eQuote;
+				}
+		}
+		else{
+			if(this.originalText.charAt(beginOffsetSen) == '\"') ++eQuote;
+			else if(this.originalText.charAt(endOffsetSen-1) == '\"') --bQuote;
+			else
+			{
+				int bQuoteOffset = quoteOffset;
+				if(this.isSpace(bQuoteOffset-1) && !this.isSpace(bQuoteOffset+1)) ++eQuote;
+				else if(this.isSpace(bQuoteOffset+1) && !this.isSpace(bQuoteOffset-1)) --bQuote;
+				else{
+					System.out.println("***************WeirdQuoteMarks************:"
+							+ sentence
+									.get(CoreAnnotations.TextAnnotation.class));
+					boolean hasCommuncationWordAfterQuote = false;
+					boolean hasSayBeforeQuote = false;
+					boolean hasSayAfterQuote = false;
+					for (CoreMap token : sentence
+							.get(CoreAnnotations.TokensAnnotation.class)) {
+						ArrayCoreMap aToken = (ArrayCoreMap) token;
+						int bOffset = aToken
+								.get(CoreAnnotations.CharacterOffsetBeginAnnotation.class);
+						String lemma = aToken
+								.get(CoreAnnotations.LemmaAnnotation.class);
+						if (lemma.equals("say")) {
+							if (bOffset > quoteOffset)
+								hasSayAfterQuote = true;
+							else
+								hasSayBeforeQuote = true;
+						}
+						if (this.isCommunicationWord(lemma)) {
+							if (bOffset > quoteOffset)
+								hasCommuncationWordAfterQuote = true;
+						}
+					}
+					if (!hasCommuncationWordAfterQuote
+							|| (hasSayBeforeQuote && !hasSayAfterQuote))
+						++eQuote;
+					else
+						--bQuote;
+				}
+			}
+		}
+		return new int[] {bQuote, eQuote};
+	}
 	private void processSentence(int paragraphNum, ArrayCoreMap sentence, Vector<Quote> ret) 
 	{		
+		/*if(sentence.get(CoreAnnotations.TextAnnotation.class).contains("he stole it from"))
+			System.out.println("SDFSD((((((((())))))))))");*/
 		//Util.debug(sentence.get(CoreAnnotations.TextAnnotation.class));
 		int beginOffsetSen = sentence.get(CoreAnnotations.CharacterOffsetBeginAnnotation.class);
 		int endOffsetSen = sentence.get(CoreAnnotations.CharacterOffsetEndAnnotation.class);
@@ -324,12 +394,10 @@ public class QuotedSpeechAttribution {
 		int totalQuoteMark = eQuote - bQuote;
 		if(totalQuoteMark == 0 || totalQuoteMark > 4) return;
 		//because sentence split are not perfect, we get odd number of quote marks in a sentence often
-		if(totalQuoteMark % 2 == 1)
-		{
-			if(this.originalText.charAt(beginOffsetSen) == '\"') ++eQuote;
-			else --bQuote;
-			if(bQuote < 0 || eQuote > this.tmpQuoteMarks.length) return;
-		}
+		int []adjust = this.adjustQuoteIndexs(totalQuoteMark, sentence, this.tmpQuoteMarks[bQuote].beginOffset);
+		bQuote += adjust[0];
+		eQuote += adjust[1];
+		if(bQuote < 0 || eQuote > this.tmpQuoteMarks.length) return;
 		Set<Person> speakers = new TreeSet<Person>(new Comparator<Person>(){
 			public int compare(Person a, Person b) {
 				return a.Id - b.Id;
@@ -356,8 +424,8 @@ public class QuotedSpeechAttribution {
 					Person person = this.nameMap.get(name);
 					if(person != null)
 						speakers.add(this.nameMap.get(name));
-					else
-						nonNECandidateExists = true;
+					//else
+						//nonNECandidateExists = true;
 				}
 			}
 			if(pQuote == eQuote) break;
@@ -491,8 +559,14 @@ public class QuotedSpeechAttribution {
 		return checkWordNet(word, POS.VERB, new String[]{"verb.communication", "verb.cognition", "verb.emotion"}, true);
 	}
 	
+	public boolean isCommunicationWord(String word)
+	{
+		return checkWordNet(word, POS.VERB, new String[]{"verb.communication"}, true);
+	}
+	
 	public boolean isPerson(String word)  
 	{
+		if(word.equalsIgnoreCase("i")) return true;
 		return checkWordNet(word, POS.NOUN, new String[]{"noun.person"}, true);
 	}
 	
@@ -500,6 +574,7 @@ public class QuotedSpeechAttribution {
 	{
 		 List<CoreMap> sentences = annotation.get(CoreAnnotations.SentencesAnnotation.class);
 		 Set<String> names = new TreeSet<String>();
+		 names.add("i");
 		 for(int i=0; i<sentences.size(); ++i)
 		 {
 		      ArrayCoreMap sentence = (ArrayCoreMap) sentences.get(i);    
