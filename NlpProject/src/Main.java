@@ -59,7 +59,8 @@ public class Main {
 		    	System.out.println(++cnt + ":" + "[" + q.speaker.name + "]" + "=>" + q.text);
 		    }
 			Set<String> setName = StandfordWrapper.getNames(input);
-			
+		System.out.println("Start extracting features from network");
+		long startTime = System.currentTimeMillis();
 		SNFeatureExtraction snfe = new SNFeatureExtraction(list, text, qsa.names);
 		ConversationalNetworkFeature cnf = snfe.ConstructNetwork();
 		
@@ -77,7 +78,8 @@ public class Main {
 		System.out.println("cnf.avgDegree: " + cnf.avgDegree);
 		
 		System.out.println("cnf.graphDensity: " + cnf.graphDensity);
-		
+		long endTime = System.currentTimeMillis();
+		System.out.println("Time for features network extraction: " + (endTime - startTime));
 		
 		//Demo();
 	}
