@@ -47,18 +47,13 @@ public class Main {
 		    qsa.preprocessing();
 		    Vector<Quote> list = qsa.getAllAttributedQuotes();
 		    Iterator<Quote> it = list.iterator();
-		    int cnt = 0;
-		    System.out.print("cntQuote=");
-		    for(int i=0; i<=4; ++i)
-		    	System.out.println(QuotedSpeechAttribution.cntQuote[i]);
-		    System.out.println("cntQuoteMore=" + QuotedSpeechAttribution.cntQuoteMore);
-		    System.out.println("cntMiddleQuote=" + QuotedSpeechAttribution.cntMiddleQuote);
+		    int cnt = 0;		  
 		    while(it.hasNext())
 		    {
 		    	Quote q= it.next();
 		    	System.out.println(++cnt + ":" + "[" + q.speaker.name + "]" + "=>" + q.text);
 		    }
-			Set<String> setName = StandfordWrapper.getNames(input);
+			//Set<String> setName = StandfordWrapper.getNames(input);
 		System.out.println("Start extracting features from network");
 		long startTime = System.currentTimeMillis();
 		SNFeatureExtraction snfe = new SNFeatureExtraction(list, text, qsa.names);
