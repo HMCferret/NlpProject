@@ -15,10 +15,10 @@ import edu.stanford.nlp.util.CoreMap;
 
 
 public class StandfordWrapper {
-	
+	public static StanfordCoreNLP pipeline = null;
 	public static void annotate(Annotation annotation, PrintWriter out)
 	{
-		StanfordCoreNLP pipeline = new StanfordCoreNLP();
+		if(pipeline == null) pipeline = new StanfordCoreNLP();
 		pipeline.annotate(annotation);
 		if(out != null)
 			pipeline.prettyPrint(annotation, out);
