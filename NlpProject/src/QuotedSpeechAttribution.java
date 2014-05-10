@@ -5,6 +5,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -37,11 +38,13 @@ import edu.stanford.nlp.util.CoreMap;
 
 
 
+
+
 import java.util.Comparator;
 
 public class QuotedSpeechAttribution {
 	private static final int DIS_THRESH_IN_WORDS = 300; 
-
+	
 	private Map<String, Person> nameMap;
 	private Annotation annotation;
 	private PrintWriter out;
@@ -49,6 +52,7 @@ public class QuotedSpeechAttribution {
 	private String originalText;
 	public Set<String> names;
 	
+	private boolean useSingleQuoteMark = false;
 	private TmpString[] tmpWords;
 	private TmpString[] tmpCandidates;
 	private TmpString[] tmpQuoteMarks;
@@ -116,6 +120,28 @@ public class QuotedSpeechAttribution {
 		if(verbose) Util.debug("initTempArrays end");
 	}
 	
+	private void checkIfSingleQuoteMarkIsUsed(List<CoreMap> sentences)
+	{
+		int singleCnt = 0;
+		int doubleCnt = 0;
+		for(int i=0; i<sentences.size(); ++i)
+		{
+		      ArrayCoreMap sentence = (ArrayCoreMap) sentences.get(i);
+		      for (CoreMap token : sentence.get(CoreAnnotations.TokensAnnotation.class)) 
+		      {
+		    	  ArrayCoreMap aToken = (ArrayCoreMap) token;
+		    	  String txt = aToken.get(CoreAnnotations.OriginalTextAnnotation.class);
+		    	  if(txt.startsWith("\'"))
+		    	  {
+		    		  ++singleCnt;
+		    	  }else if(txt.startsWith("\""))
+		    	  {
+		    		  ++doubleCnt;
+		    	  }
+		      }
+		}
+		if(singleCnt > doubleCnt) this.useSingleQuoteMark = true;
+	}
 	private void initAllTempArrays()
 	{
 		List<TmpString> tmpWords = new ArrayList<TmpString>();
@@ -125,6 +151,7 @@ public class QuotedSpeechAttribution {
 		List<TmpString> tmpExpVerbs = new ArrayList<QuotedSpeechAttribution.TmpString>();
 		List<TmpString> tmpCandidatesInQuote = new ArrayList<TmpString>();
 		List<CoreMap> sentences = annotation.get(CoreAnnotations.SentencesAnnotation.class);
+		checkIfSingleQuoteMarkIsUsed(sentences);
 		int paragraphNum = 0, prevParapraphOffset = 0;
 		for(int i=0; i<sentences.size(); ++i)
 		 {
@@ -150,7 +177,7 @@ public class QuotedSpeechAttribution {
 					int beginOffset = aToken.get(CoreAnnotations.CharacterOffsetBeginAnnotation.class);
 					int endOffset = aToken.get(CoreAnnotations.CharacterOffsetEndAnnotation.class);
 					tmpWords.add(new TmpString(beginOffset, endOffset, txt));
-					if(txt.equals("\""))
+					if(isQuoteMark(txt))
 					{
 						if(firstQuoteMarkOffset == -1) firstQuoteMarkOffset = beginOffset;
 						++totalQuoteMarks;
@@ -178,7 +205,7 @@ public class QuotedSpeechAttribution {
 						.get(CoreAnnotations.CharacterOffsetEndAnnotation.class);
 				String lemma = aToken.get(CoreAnnotations.LemmaAnnotation.class);
 				
-				if(txt.startsWith("\"")) ++quoteMarkCnt;
+				if(isQuoteMark(txt)) ++quoteMarkCnt;
 				if (this.isVerbalExpression(lemma) && quoteMarkCnt % 2 == 0)
 					tmpExpVerbs.add(new TmpString(beginOffset, endOffset, txt));
 				if (ne.equals("PERSON")) {
@@ -279,8 +306,12 @@ public class QuotedSpeechAttribution {
 	private int updateParagraphNum(int current, ArrayCoreMap sentence)
 	{
 		int e = sentence.get(CoreAnnotations.CharacterOffsetEndAnnotation.class);
-		if(e+1 >= this.originalText.length() || this.originalText.charAt(e+1) == '\n')
-			return current+1;
+		while(e < this.originalText.length() && Character.isSpaceChar(this.originalText.charAt(e)))
+		{
+			++e;
+		}
+
+		if(e >= this.originalText.length() || this.originalText.charAt(e) == '\n') return current + 1;
 		return current;
 	}
 	
@@ -331,6 +362,14 @@ public class QuotedSpeechAttribution {
 				uniqueRet.add(q);
 			}
 		}
+		
+		Collections.sort(uniqueRet, new Comparator<Quote>(){
+			@Override
+			public int compare(Quote arg0, Quote arg1) {
+				return arg0.characterBeginOffset - arg1.characterBeginOffset;
+			}
+			
+		});
 		return uniqueRet;
 	}
 
@@ -355,6 +394,15 @@ public class QuotedSpeechAttribution {
 		return Character.isSpaceChar(this.originalText.charAt(offset)) || Character.isWhitespace(this.originalText.charAt(offset));
 	}
 	
+	private boolean isQuoteMark(char c)
+	{
+		if(this.useSingleQuoteMark) return c == '\'';
+		else return c == '\"';
+	}
+	private boolean isQuoteMark(String s)
+	{
+		return s != null && s.length() == 1 && isQuoteMark(s.charAt(0));
+	}
 	private int[] adjustQuoteIndexs(int totalQuoteMark, CoreMap sentence, int quoteOffset)
 	{
 		int beginOffsetSen = sentence.get(CoreAnnotations.CharacterOffsetBeginAnnotation.class);
@@ -371,8 +419,8 @@ public class QuotedSpeechAttribution {
 				}
 		}
 		else{
-			if(this.originalText.charAt(beginOffsetSen) == '\"') ++eQuote;
-			else if(this.originalText.charAt(endOffsetSen-1) == '\"') --bQuote;
+			if(isQuoteMark(this.originalText.charAt(beginOffsetSen))) ++eQuote;
+			else if(isQuoteMark(this.originalText.charAt(endOffsetSen-1))) --bQuote;
 			else
 			{
 				int bQuoteOffset = quoteOffset;
@@ -486,7 +534,10 @@ public class QuotedSpeechAttribution {
 	}
 	private void calcuteFeature_typeOfWordBetween(CandidateQuote cq)
 	{
+		//TBD; use binary search and TmpString, don't scan word by word;
+		/*
 		int bWord = this.binarySearchAfter(cq.quoteBeginOffset, this.tmpWords);
+		if(cq.distance > 0) bWord = this.binarySearchBefore(cq.quoteEndOffset, this.tmpWords);
 		int step = cq.distance / Math.abs(cq.distance);
 		for(int i=step; Math.abs(i)< Math.abs(cq.distance); i+=step)
 		{
@@ -496,13 +547,13 @@ public class QuotedSpeechAttribution {
 			if(startChar == ',') cq.commaPresence = true;
 			else if(startChar == '.') cq.periodPresence = true; 
 			else if(!Character.isLetter(startChar)) cq.punctuationPresence = true; 
-			
+		
 			//if(this.isVerbalExpression(txt)) cq.expVerbPresence = true;
 			int bPerson = this.binarySearchAfter(word.beginOffset,tmpCandidates);
 			if(bPerson <tmpCandidates.length && tmpCandidates[bPerson].beginOffset == word.beginOffset) 
 				cq.personPresence = true;
 			
-		}
+		}*/
 		
 	}
 	private void extractCandidateQuoteForOneQuote(int paragraphNum, ArrayCoreMap sentence, int bQuote)
@@ -522,7 +573,7 @@ public class QuotedSpeechAttribution {
 			int beginOffset = this.tmpCandidates[pCand].endOffset;
 			int endOffset = this.tmpQuoteMarks[bQuote].beginOffset;
 			int distance = -getDistanceInWords(beginOffset, endOffset) - 1;
-			if(distance > DIS_THRESH_IN_WORDS) break;
+			if(-distance > DIS_THRESH_IN_WORDS) break;
 			Person p = this.nameMap.get(this.tmpCandidates[pCand].txt);
 			if(p != null && !candidateDistance.containsKey(p)) candidateDistance.put(p, distance);
 		}
@@ -546,7 +597,7 @@ public class QuotedSpeechAttribution {
 			cq.quoteEndOffset = this.tmpQuoteMarks[bQuote+1].endOffset;
 			cq.distance = candidateDistance.get(p);
 			sortList[i++] = cq;
-			calcuteFeature_typeOfWordBetween(cq);
+			//calcuteFeature_typeOfWordBetween(cq);
 			this.candidateQuotes.add(cq);
 		}
 		//for the feature ordinal number
