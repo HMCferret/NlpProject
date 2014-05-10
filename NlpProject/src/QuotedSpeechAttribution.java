@@ -4,6 +4,7 @@ import java.io.PrintWriter;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -27,6 +28,7 @@ import edu.stanford.nlp.trees.Tree;
 import edu.stanford.nlp.trees.TreeCoreAnnotations;
 import edu.stanford.nlp.util.ArrayCoreMap;
 import edu.stanford.nlp.util.CoreMap;
+
 
 
 
@@ -109,8 +111,9 @@ public class QuotedSpeechAttribution {
 	    if(verbose) Util.debug(nameMap);
 	    
 	   
-		
+		if(verbose) Util.debug("initTempArrays start");
 		initAllTempArrays();
+		if(verbose) Util.debug("initTempArrays end");
 	}
 	
 	private void initAllTempArrays()
@@ -208,7 +211,7 @@ public class QuotedSpeechAttribution {
 				}
 			}
 		  }
-		/*
+		
 		System.out.println("para #: " + tmpPnums.size());
 		for(int i=0; i<5 && i < tmpPnums.size(); ++i)
 		{
@@ -216,11 +219,11 @@ public class QuotedSpeechAttribution {
 			System.out.println(n.num + "(" +  n.beginOffset + "," + n.endOffset + "):" + this.originalText.substring(n.beginOffset, n.endOffset));
 		}
 		System.out.println("tmpWords #: " + tmpWords.size());
-		for(int i=0; i<5; ++i)
+		for(int i=0; i<5 && i< tmpWords.size(); ++i)
 		{
 			TmpString n = tmpWords.get(i);
 			System.out.println("word(" +  n.beginOffset + "," + n.endOffset + "):" + this.originalText.substring(n.beginOffset, n.endOffset));
-		}*/
+		}
 		System.out.println("tmpCandiates #: " + tmpCandidates.size());
 		
 		for(int i=0; i<5 && i < tmpCandidates.size(); ++i)
@@ -289,11 +292,13 @@ public class QuotedSpeechAttribution {
 	
 	public Vector<Quote> getAllAttributedQuotes() 
 	{
+		if(verbose) Util.debug("in getAllAttributedQuotes");
 		List<CoreMap> sentences = annotation.get(CoreAnnotations.SentencesAnnotation.class);
 		int paragraphNum = 0;
 		Vector<Quote> ret = new Vector<Quote>();
 		for(int i=0; i<sentences.size(); ++i)
 		 {
+				//System.out.println("sentence#" + i);
 		      ArrayCoreMap sentence = (ArrayCoreMap) sentences.get(i);
 		      
 		      paragraphNum = this.updateParagraphNum(paragraphNum, sentence);
@@ -309,12 +314,39 @@ public class QuotedSpeechAttribution {
 			++cntTotal;
 			if(cq.quoteBeginOffset != prevOffset) ++cntUniqueQuote;
 			out.println("CandidateQuote(" + cq.candidate.name + "," + this.originalText.substring(cq.quoteBeginOffset, cq.quoteEndOffset) );
-			out.println("Distance=" + cq.distance);
+			//out.println("Distance=" + cq.distance + ",Oridinal=" + cq.ordinal);
+			out.println(cq);
 			prevOffset = cq.quoteBeginOffset;
 		}
-		
 		System.out.println("cntUniqueQuote:" + cntUniqueQuote + ", cntTotal=" + cntTotal);
-		return ret;
+		getQuotesFromCandidateQuoteUsingJ48(ret);
+		
+		Set<Integer> quoteBOffsets = new HashSet<Integer>();
+		Vector<Quote> uniqueRet = new Vector<Quote>();
+		for(Quote q :ret)
+		{
+			if(!quoteBOffsets.contains(q.characterBeginOffset))
+			{
+				quoteBOffsets.add(q.characterBeginOffset);
+				uniqueRet.add(q);
+			}
+		}
+		return uniqueRet;
+	}
+
+	private void getQuotesFromCandidateQuoteUsingJ48(Vector<Quote> ret) {
+		if(this.candidateQuotes != null)
+		{
+		for(CandidateQuote cq :this.candidateQuotes)
+		{
+			if(cq.ordinal == 1)
+			{
+				Quote q = new Quote(cq.candidate, this.originalText.substring(cq.quoteBeginOffset, cq.quoteEndOffset), null,
+						cq.quoteBeginOffset, cq.quoteEndOffset);
+				ret.add(q);
+			}
+		}
+		}
 	}
 
 	private boolean isSpace(int offset)
@@ -452,7 +484,27 @@ public class QuotedSpeechAttribution {
 			}
 		}
 	}
-	
+	private void calcuteFeature_typeOfWordBetween(CandidateQuote cq)
+	{
+		int bWord = this.binarySearchAfter(cq.quoteBeginOffset, this.tmpWords);
+		int step = cq.distance / Math.abs(cq.distance);
+		for(int i=step; Math.abs(i)< Math.abs(cq.distance); i+=step)
+		{
+			TmpString word = this.tmpWords[bWord+i];
+			String txt = word.txt;
+			char startChar = txt.charAt(0);
+			if(startChar == ',') cq.commaPresence = true;
+			else if(startChar == '.') cq.periodPresence = true; 
+			else if(!Character.isLetter(startChar)) cq.punctuationPresence = true; 
+			
+			//if(this.isVerbalExpression(txt)) cq.expVerbPresence = true;
+			int bPerson = this.binarySearchAfter(word.beginOffset,tmpCandidates);
+			if(bPerson <tmpCandidates.length && tmpCandidates[bPerson].beginOffset == word.beginOffset) 
+				cq.personPresence = true;
+			
+		}
+		
+	}
 	private void extractCandidateQuoteForOneQuote(int paragraphNum, ArrayCoreMap sentence, int bQuote)
 	{
 		if(this.candidateQuotes == null) this.candidateQuotes = new ArrayList<CandidateQuote>();
@@ -469,7 +521,7 @@ public class QuotedSpeechAttribution {
 		{
 			int beginOffset = this.tmpCandidates[pCand].endOffset;
 			int endOffset = this.tmpQuoteMarks[bQuote].beginOffset;
-			int distance = getDistanceInWords(beginOffset, endOffset);
+			int distance = -getDistanceInWords(beginOffset, endOffset) - 1;
 			if(distance > DIS_THRESH_IN_WORDS) break;
 			Person p = this.nameMap.get(this.tmpCandidates[pCand].txt);
 			if(p != null && !candidateDistance.containsKey(p)) candidateDistance.put(p, distance);
@@ -479,11 +531,13 @@ public class QuotedSpeechAttribution {
 		{
 			int beginOffset = this.tmpQuoteMarks[bQuote+1].endOffset;
 			int endOffset = this.tmpCandidates[pCand].beginOffset;
-			int distance = getDistanceInWords(beginOffset, endOffset);
+			int distance = getDistanceInWords(beginOffset, endOffset) + 1;
 			if(distance > DIS_THRESH_IN_WORDS) break;
 			Person p = this.nameMap.get(this.tmpCandidates[pCand].txt);
-			if(p != null && (!candidateDistance.containsKey(p) || candidateDistance.get(p) >distance)) candidateDistance.put(p, distance);
+			if(p != null && (!candidateDistance.containsKey(p) || Math.abs(candidateDistance.get(p)) >distance)) candidateDistance.put(p, distance);
 		}
+		CandidateQuote[] sortList = new CandidateQuote[candidateDistance.size()];
+		int i=0;
 		for(Person p: candidateDistance.keySet())
 		{
 			CandidateQuote cq = new CandidateQuote();
@@ -491,7 +545,21 @@ public class QuotedSpeechAttribution {
 			cq.quoteBeginOffset = this.tmpQuoteMarks[bQuote].beginOffset;
 			cq.quoteEndOffset = this.tmpQuoteMarks[bQuote+1].endOffset;
 			cq.distance = candidateDistance.get(p);
+			sortList[i++] = cq;
+			calcuteFeature_typeOfWordBetween(cq);
 			this.candidateQuotes.add(cq);
+		}
+		//for the feature ordinal number
+		Arrays.sort(sortList, new Comparator<CandidateQuote>(){
+			@Override
+			public int compare(CandidateQuote arg0, CandidateQuote arg1) {
+				return Math.abs(arg0.distance) - Math.abs(arg1.distance);
+			}
+		});
+		
+		for(i=0; i<sortList.length; ++i)
+		{
+			sortList[i].ordinal = i+1;
 		}
 		
 	}
@@ -504,6 +572,11 @@ public class QuotedSpeechAttribution {
 		return eWords - bWords;
 	}
 
+	/**
+	 * @param bOffset
+	 * @param array
+	 * @return the first TmpString whose beginOffset is equal or greater than bOffset;
+	 */
 	private int binarySearchAfter(int bOffset, TmpString[] array)
 	{
 		int l = 0, r = array.length-1;
@@ -515,6 +588,12 @@ public class QuotedSpeechAttribution {
 		}
 		return l;
 	}
+	
+	/**
+	 * @param eOffset
+	 * @param array
+	 * @return the last TmpString whose endOffset is equal or smaller than eOffset
+	 */
 	private int binarySearchBefore(int eOffset, TmpString[] array)
 	{		
 		int l = 0, r = array.length-1;

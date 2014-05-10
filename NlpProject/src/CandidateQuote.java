@@ -44,4 +44,18 @@ public class CandidateQuote {
 	public Person candidate;
 	public int quoteBeginOffset;
 	public int quoteEndOffset;
+	
+	@Override
+	public String toString()
+	{
+		return "dist="+this.distance + " comma,period,punct=" + this.commaPresence + "," + this.periodPresence + ","
+				+ this.punctuationPresence + " ordinal=" + this.ordinal + " propotion=" + this.proportion
+				+ " name,quote,wordCd=" + this.numNameCd + "," + this.numQuoteCd + "," +this.numWordCd 
+				+ " name,quote,wordQt=" + this.numNameQt + "," + this.numQuoteQt + "," + this.numWordQt 
+				+ " name,quote,wordOtr=" + this.numNameOtr + "," + this.numQuoteOtr + "," + this.numWordOtr 
+				+ " numApperance=" + this.numAppearance
+				+ " exverb,persenPresence=" + this.expVerbPresence + "," + this.personPresence
+				+ " quoteLen,pos,OtherChar,Candidate=" + this.quoteLength + "," + this.quotePosition + "," + this.otherCharPresence
+				+ "," + this.candidatePresence;
+	}
 }
