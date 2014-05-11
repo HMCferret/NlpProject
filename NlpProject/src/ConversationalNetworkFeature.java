@@ -5,7 +5,7 @@ public class ConversationalNetworkFeature {
 	public int numSpeakingChar;
 	
 	//2
-	public double MostFqtChar;
+	public double mostFqtChar;
 	
 	//3
 	public int numQuote;
@@ -13,11 +13,13 @@ public class ConversationalNetworkFeature {
 	
 	//4
 	public int num3Clique;
-	public int num4Clique;
+	//public int num4Clique;
 	
 	//5
 	public double avgDegree;
 	
 	//6
 	public double graphDensity;
+	
+	public boolean success;
 }

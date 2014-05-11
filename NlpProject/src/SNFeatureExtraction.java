@@ -18,12 +18,14 @@ public class SNFeatureExtraction {
 	private Map<String, Integer> mapHelper;//store speakers's frequency
 	private Map<Integer, Quote> mapHelper2;//store speaker's quotePosition
 	private Set<String> names;
+	private boolean success;
 	
-	public SNFeatureExtraction(List<Quote> lq, String text, Set<String> names)
+	public SNFeatureExtraction(List<Quote> lq, String text, Set<String> names, boolean success)
 	{
 		this.lq = lq;
 		this.text = text;
 		this.names= names;
+		this.success = success;
 	}
 	
 	public ConversationalNetworkFeature ConstructNetwork()
@@ -60,7 +62,7 @@ public class SNFeatureExtraction {
 		ConversationalNetworkFeature cnf = new ConversationalNetworkFeature();
 		int t = mapHelper.size();
 		int n = (t % 5 == 0)?5:t % 5; //n most frequent speakers
-		cnf.MostFqtChar = 0;
+		cnf.mostFqtChar = 0;
 		
 		//1
 		cnf.numChar = names.size();
@@ -71,12 +73,14 @@ public class SNFeatureExtraction {
 		mapHelper = sortByValue(mapHelper);
 		int index = 0;
 		for (Map.Entry<String,Integer> entry : mapHelper.entrySet()) {
-			cnf.MostFqtChar += entry.getValue();
+			cnf.mostFqtChar += entry.getValue();
 			index++;
 			if(index >= n )
 				break;
 	    	}
-		cnf.MostFqtChar /=lq.size();
+		cnf.mostFqtChar /=lq.size();
+		cnf.mostFqtChar*=100;
+		cnf.mostFqtChar = (cnf.mostFqtChar==Double.NaN)?0.1:(cnf.mostFqtChar-0.01);
 		
 		//3
 		cnf.numQuote = lq.size();
@@ -84,13 +88,17 @@ public class SNFeatureExtraction {
 		
 		//4
 		cnf.num3Clique = numClique(3);
-		cnf.num4Clique = numClique(4);
+		//cnf.num4Clique = numClique(4);
 		
 		//5
 		cnf.avgDegree = network.size()*1.0/t;
+		cnf.avgDegree = (cnf.avgDegree==Double.NaN)?0.1:cnf.avgDegree;
 		
 		//6
 		cnf.graphDensity = network.size()*1.0/(t*(t-1));
+		cnf.graphDensity = (cnf.graphDensity==Double.NaN)?0.1:cnf.graphDensity;
+		
+		cnf.success = success;
 		
 		return cnf;
 		

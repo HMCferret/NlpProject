@@ -32,8 +32,7 @@ public class CandidateQuote {
 	
 	//7
 	public boolean expVerbPresence;
-	public boolean personPresence;
-	
+	public boolean personPresence;	
 	
 	//8
 	public int quoteLength;
@@ -44,4 +43,6 @@ public class CandidateQuote {
 	public Person candidate;
 	public int quoteBeginOffset;
 	public int quoteEndOffset;
+	
+	public boolean speaker;
 }
