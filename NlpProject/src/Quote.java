@@ -4,7 +4,7 @@ public class Quote {
 	String text;
 	int characterBeginOffset;
 	int characterEndOffset;
-	String verb;
+	private String verb;
 	
 	Quote(Person speaker, String text, String verb, int bOffset, int eOffset)
 	{
