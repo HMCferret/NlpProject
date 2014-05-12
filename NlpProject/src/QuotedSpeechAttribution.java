@@ -40,6 +40,8 @@ import edu.stanford.nlp.util.CoreMap;
 
 
 
+
+
 import java.util.Comparator;
 
 public class QuotedSpeechAttribution {
@@ -91,15 +93,60 @@ public class QuotedSpeechAttribution {
 	private void generateNameMap(Set<String> names)
 	{
 		nameMap =new HashMap<String, Person>();
-		//TBD
+		
+		String[] namesSorted = names.toArray(new String[names.size()]);
+		Arrays.sort(namesSorted, new Comparator<String>(){
+			@Override
+			public int compare(String arg0, String arg1) {
+				return arg0.length() - arg1.length();
+			}
+		});
+		
+		for(int i=0; i<namesSorted.length; ++i)
+		{
+			boolean found = false;
+			for(String s : nameMap.keySet())
+			{
+				if(isSamePerson(namesSorted[i], s))
+				{
+					nameMap.put(namesSorted[i], nameMap.get(s));
+					found = true;
+					break;
+				}
+			}
+			if(!found)
+				nameMap.put(namesSorted[i], new Person(namesSorted[i]));
+
+		}
+		/*
 		Iterator<String> it = names.iterator();
 		while(it.hasNext())
 		{
 			String name = it.next();
 			nameMap.put(name, new Person(name));
-		}
+		}*/
 	}
 	
+	private boolean isSamePerson(String name, String cmp) {
+		List<Integer> startIndices = new ArrayList<Integer>();
+		char last = ' ';
+		for(int i=0; i<name.length(); ++i)
+		{
+			if(name.charAt(i) != ' ' && last == ' ') startIndices.add(i);
+			last = name.charAt(i);
+		}
+		for(int i=0; i<startIndices.size(); ++i)
+		{
+			int startIndex = startIndices.get(i);
+			int endIndex = startIndex + cmp.length();
+			if( endIndex > name.length()) break;
+			if((endIndex == name.length() || name.charAt(endIndex) == ' ') 
+					&& name.substring(startIndex, endIndex).equals(cmp) )
+				return true;
+		}
+		return false;
+	}
+
 	/*
 	 * Could take long
 	 */
@@ -110,9 +157,11 @@ public class QuotedSpeechAttribution {
 	    if(verbose) Util.debug("Annotation ends");
 	    
 		names = getNames(annotation);
-	    System.out.println(names);
+	    Util.debug(names);
+	    this.out.println(names);
 	    generateNameMap(names);
-	    if(verbose) Util.debug(nameMap);
+	    Util.debug(nameMap);
+	    this.out.println(nameMap);
 	    
 	   
 		if(verbose) Util.debug("initTempArrays start");
