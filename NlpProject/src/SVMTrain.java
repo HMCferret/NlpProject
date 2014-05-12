@@ -39,7 +39,7 @@ public class SVMTrain {
 		{
 			getData(i);
 			
-			AJ48 aj48 = new AJ48(trainData,testData,10000,10);
+			AJ48 aj48 = new AJ48(trainData,testData,20000,10);
 			aj48.Create();
 			sum+=aj48.getResult();
 			out.println("Round " + i + ": " + aj48.getResult());
