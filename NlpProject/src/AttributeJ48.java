@@ -21,7 +21,7 @@ public class AttributeJ48 {
 	private int rangeLength;
 	private double[] vals;
 	
-	
+	//Attribute J48 for CandidateQuote
 	public AttributeJ48(List<CandidateQuote> cq, int range, int rangeLength)
 	{
 		this.cq=cq;
@@ -161,7 +161,7 @@ public class AttributeJ48 {
 				double pred = fc.classifyInstance(test.instance(i));
 				actual = test.classAttribute().value((int) test.instance(i).classValue());
 				predicted = test.classAttribute().value((int) pred);
-				System.out.print("ID: " + test.instance(i).value(0));
+				System.out.print("ID: " + i);
 				System.out.print(", actual: " + actual);
 				System.out.println(", predicted: " + predicted);
 				CandidateQuote cqResult = cq.get(i);

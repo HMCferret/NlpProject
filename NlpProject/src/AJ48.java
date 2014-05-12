@@ -1,4 +1,3 @@
-import java.util.ArrayList;
 import java.util.List;
 
 import weka.classifiers.meta.FilteredClassifier;
@@ -9,6 +8,7 @@ import weka.core.Instance;
 import weka.core.Instances;
 import weka.filters.unsupervised.attribute.Remove;
 
+//Attribute J48 for ConversationalNetworkFeature
 public class AJ48 {
 	private FastVector atts;
 	private FastVector attValsNumeric;
@@ -18,10 +18,10 @@ public class AJ48 {
 	private Instances dataTest;
 	private List<ConversationalNetworkFeature> train;
 	private List<ConversationalNetworkFeature> test;
-//	private List<CandidateQuoteResult> cqr;
 	private int range;
 	private int rangeLength;
 	private double[] vals;
+	private double result;
 	
 	public AJ48(List<ConversationalNetworkFeature> train, List<ConversationalNetworkFeature> test, int range, int rangeLength)
 	{
@@ -144,15 +144,21 @@ public class AJ48 {
 				double pred = fc.classifyInstance(test.instance(i));
 				actual = test.classAttribute().value((int) test.instance(i).classValue());
 				predicted = test.classAttribute().value((int) pred);
-				System.out.print("ID: " + test.instance(i).value(0));
-				System.out.print(", actual: " + actual);
-				System.out.println(", predicted: " + predicted);
+//				System.out.print("ID: " + i);
+//				System.out.print(", actual: " + actual);
+//				System.out.println(", predicted: " + predicted);
 				if(actual.equals(predicted))
 				{	
 					count++;
 				}
 			}
-			System.out.println("Accuracy: " + String.format("%.2f",1.0*count/test.numInstances()*100) + "%");
+			result = 1.0*count/test.numInstances()*100;
+			System.out.println("Accuracy: " + result + "%");
+	  }
+	  
+	  public double getResult()
+	  {
+		  return result;
 	  }
 	  
 	  private void AddValue(Integer i, Object value)

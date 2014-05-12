@@ -7,7 +7,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-
+//Baseline using Unigram and Bigram
 public class Baseline {
 	
 	private List<String> filesTestNeg;
@@ -390,8 +390,8 @@ public class Baseline {
 				if(posNeg[i] > posPos[i])
 					count++;
 			}
-			System.out.println("Number of correct reviews: " + count + " over 40");
-			return count/40.0;
+			System.out.println("Number of correct reviews: " + count + " over 20");
+			return count/20.0;
 	}
 	
 	public Integer Sub(int a, int b)

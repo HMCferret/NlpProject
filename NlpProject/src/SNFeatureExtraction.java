@@ -78,9 +78,13 @@ public class SNFeatureExtraction {
 			if(index >= n )
 				break;
 	    	}
-		cnf.mostFqtChar /=lq.size();
-		cnf.mostFqtChar*=100;
-		cnf.mostFqtChar = (cnf.mostFqtChar==Double.NaN)?0.1:(cnf.mostFqtChar-0.01);
+		if(lq.size()!=0){
+			cnf.mostFqtChar /=lq.size();
+			cnf.mostFqtChar*=100;
+			cnf.mostFqtChar = cnf.mostFqtChar-0.01;
+		} else {
+			cnf.mostFqtChar = 0.1;
+		}
 		
 		//3
 		cnf.numQuote = lq.size();
@@ -91,12 +95,18 @@ public class SNFeatureExtraction {
 		//cnf.num4Clique = numClique(4);
 		
 		//5
-		cnf.avgDegree = network.size()*1.0/t;
-		cnf.avgDegree = (cnf.avgDegree==Double.NaN)?0.1:cnf.avgDegree;
+		if(t!=0){
+			cnf.avgDegree = network.size()*1.0/t;
+		}else{
+			cnf.avgDegree = 0.1;
+		}
 		
 		//6
-		cnf.graphDensity = network.size()*1.0/(t*(t-1));
-		cnf.graphDensity = (cnf.graphDensity==Double.NaN)?0.1:cnf.graphDensity;
+		if(t*(t-1)!=0){
+			cnf.graphDensity = network.size()*1.0/(t*(t-1));
+		}else{
+			cnf.graphDensity = 0.1;
+		}
 		
 		cnf.success = success;
 		
