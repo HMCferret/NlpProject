@@ -28,15 +28,15 @@ import edu.stanford.nlp.util.CoreMap;
 public class Main {
 	
 	public static void main(String[] args) throws Exception {
-		Baseline bl = new Baseline();
-		bl.Run();
+//		Baseline bl = new Baseline();
+//		bl.Run();
 		
 		List<String> listCategories = new ArrayList<String>();
 
+		listCategories.add("Science_Fiction");//Training time: 394652ms ~ 6 mins
 		listCategories.add("Love_Stories");//Training time: 10563837ms ~ 2.93 hours
 		listCategories.add("Mystery");//Training time: 7092996 ~ 1.97 hours
 		listCategories.add("Poetry");//Training time: 3132876ms ~ 52 mins
-		listCategories.add("Science_Fiction");//Training time: 394652ms ~ 6 mins
 		listCategories.add("Short_Stories");//Training time: 2913532ms ~ 49 mins
 		listCategories.add("Fiction");//Training time: 8005732ms ~ 2.22 hours
 		listCategories.add("Historical_Fiction");//Training time: 12934728ms ~ 3.60 hours
