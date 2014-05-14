@@ -1,7 +1,0 @@
-Round 1: 40.0
-Round 2: 30.0
-Round 3: 40.0
-Round 4: 55.00000000000001
-Round 5: 50.0
-Result: 43.00%
-Time: 3132876ms
